@@ -279,3 +279,4 @@ Ver [`CITATION.cff`](CITATION.cff). Referencias normativas y de software:
 
 MIT — ver [`LICENSE`](LICENSE).
 # Simulador-acustico-auditorio
+# Simulador-acustico-auditorio

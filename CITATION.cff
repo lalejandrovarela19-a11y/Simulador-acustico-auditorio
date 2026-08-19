@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+title: Simulador Acustico de Auditorios
+message: Si utiliza este software, por favor citelo como se indica.
+type: software
+authors:
+  - given-names: Luis Alejandro
+    family-names: Varela Viloria
+    email: lalejandro.varela19@gmail.com
+    affiliation: Instituto Tecnologico de Costa Rica
+  - given-names: Brandon Josue
+    family-names: Ortega Cordero
+    email: brandon.ortega.cordero@gmail.com
+    affiliation: Instituto Tecnologico de Costa Rica
+abstract: >-
+  Cuaderno reactivo en marimo que simula el comportamiento acustico de un
+  auditorio rectangular mediante el Metodo de Fuentes Imagen y trazado de
+  rayos, calcula los parametros de la norma ISO 3382-1 (EDT, T20, T30, C50,
+  C80, D50, Lp) y permite auralizacion interactiva.
+keywords:
+  - acustica de recintos
+  - ISO 3382-1
+  - auralizacion
+  - pyroomacoustics
+  - marimo
+license: MIT
+version: 1.0.0
+date-released: 2026-08-17

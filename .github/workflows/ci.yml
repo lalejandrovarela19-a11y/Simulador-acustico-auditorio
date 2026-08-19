@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verificar sintaxis del cuaderno
+        run: python -m py_compile app/simulacion_acustica.py
+
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update && sudo apt-get install -y libportaudio2
+          pip install -r requirements.txt
+
+      - name: Verificar que el cuaderno es un modulo marimo valido
+        run: python -c "import ast,sys; ast.parse(open('app/simulacion_acustica.py').read()); print('cuaderno valido')"

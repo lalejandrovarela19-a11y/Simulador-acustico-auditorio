@@ -1,0 +1,6 @@
+marimo>=0.23.3
+numpy>=1.26
+scipy>=1.11
+matplotlib>=3.8
+pyroomacoustics>=0.7.3
+sounddevice>=0.4.6

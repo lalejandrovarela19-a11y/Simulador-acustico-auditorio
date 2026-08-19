@@ -1,0 +1,23 @@
+[project]
+name = "simulador-acustico-auditorio"
+version = "1.0.0"
+description = "Auralizacion interactiva y calculo de parametros ISO 3382-1 mediante el Metodo de Fuentes Imagen"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["acoustics", "room-acoustics", "iso-3382", "auralization", "marimo", "pyroomacoustics"]
+
+dependencies = [
+    "marimo>=0.23.3",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "pyroomacoustics>=0.7.3",
+    "sounddevice>=0.4.6",
+]
+
+[project.urls]
+Documentation = "https://github.com/USUARIO/simulador-acustico-auditorio/tree/main/docs"
+
+[tool.ruff]
+line-length = 100

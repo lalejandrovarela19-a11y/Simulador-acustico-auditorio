@@ -24,6 +24,7 @@ La geometría por defecto (18 m × 30 m × 7.5 m) corresponde al auditorio del *
 
 ## Índice
 
+- [Versión web (beta, sin instalación)](#versión-web-beta-sin-instalación)
 - [Instalación y ejecución](#instalación-y-ejecución)
 - [Cómo funciona: recorrido por la aplicación](#cómo-funciona-recorrido-por-la-aplicación)
 - [Arquitectura del cuaderno](#arquitectura-del-cuaderno)
@@ -34,6 +35,17 @@ La geometría por defecto (18 m × 30 m × 7.5 m) corresponde al auditorio del *
 - [Documentación extendida](#documentación-extendida)
 - [Cómo citar](#cómo-citar)
 - [Licencia](#licencia)
+
+---
+
+## Versión web (beta, sin instalación)
+
+[`web/`](web/) contiene un puerto en el navegador del mismo motor de fuentes imagen — dos archivos HTML autocontenidos (JavaScript puro, sin backend) que no requieren Python:
+
+- **[Consola Acústica](https://claude.ai/code/artifact/c5ccebcb-2a9c-4011-862f-48f07056519e)** — la app interactiva, con presets de recinto/material, comparación A/B y auralización en el navegador.
+- **[Fundamentos Acústicos](https://claude.ai/code/artifact/bac02067-5a04-4622-8702-88da22455e01)** — una figura interactiva por concepto teórico (fuentes imagen, bandas de octava, integración de Schroeder, EDT/T20/T30, D50/C50/C80, $L_p$).
+
+Es un prototipo complementario al cuaderno marimo, no un reemplazo — ver [`web/README.md`](web/README.md) para el detalle de qué reimplementa y en qué difiere.
 
 ---
 
@@ -228,6 +240,10 @@ simulador-acustico-auditorio/
 │   ├── 03-guia-de-uso.md           # Recorrido guiado y experimentos sugeridos
 │   ├── 04-parametros.md            # Referencia de cada control
 │   └── 05-limitaciones.md          # Supuestos, sesgos y validación
+├── web/
+│   ├── README.md                   # Qué reimplementa la beta web y en qué difiere
+│   ├── consola-acustica.html       # App interactiva (HTML/JS autocontenido)
+│   └── fundamentos-acusticos.html  # Fundamentos teóricos con figuras interactivas
 ├── requirements.txt
 ├── pyproject.toml
 ├── CITATION.cff

@@ -1,0 +1,883 @@
+<meta charset="UTF-8">
+<title>Fundamentos Acústicos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#050505; --panel:#0c0c0c; --rail:#111111;
+    --ink:#ffffff; --ink-soft:rgba(255,255,255,0.66); --ink-faint:rgba(255,255,255,0.38);
+    --line:rgba(255,255,255,0.13); --line-strong:rgba(255,255,255,0.26);
+    --accent:#ffffff; --accent-ink:#050505; --accent-soft:rgba(255,255,255,0.08);
+    --signal:#ffc93d; --signal-soft:rgba(255,201,61,0.14);
+    --wave-1:#3a2bff; --wave-2:#7c2bdb; --wave-3:#c62bc0;
+    --wave-4:#ef3f8f; --wave-5:#ff7a3d; --wave-6:#ffc93d; --wave-7:#ffffff;
+    --radius:14px;
+  }
+  *{ box-sizing:border-box; }
+  body{ background:var(--bg); color:var(--ink); font-family:"Archivo", system-ui, sans-serif; }
+  h1,h2,h3{ font-family:"Bricolage Grotesque", system-ui, sans-serif; font-weight:700; letter-spacing:-0.01em; text-wrap:balance; margin:0; }
+  code, .mono, .eq, .unit{ font-family:"JetBrains Mono", ui-monospace, monospace; }
+  p{ line-height:1.65; color:var(--ink-soft); max-width:62ch; }
+  a{ color:var(--ink); }
+  ::selection{ background:var(--signal-soft); }
+  :focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
+  svg text{ font-family:"JetBrains Mono", monospace; }
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:36px 20px 80px; }
+
+  /* ---- Page header ---- */
+  .back-link{
+    display:inline-flex; align-items:center; gap:7px; font-family:"JetBrains Mono",monospace; font-size:12px;
+    color:var(--ink-faint); text-decoration:none; margin-bottom:22px; transition:color .15s;
+  }
+  .back-link:hover{ color:var(--ink); }
+  .page-header .eyebrow{
+    display:block; font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px;
+  }
+  .page-header h1{ font-size:clamp(30px,4.4vw,48px); line-height:1.05; margin-bottom:14px; }
+  .page-header p.lede{ max-width:64ch; font-size:15.5px; margin-bottom:26px; }
+
+  .toc{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:8px; }
+  .toc a{
+    background:var(--panel); text-decoration:none; padding:12px 14px; display:flex; flex-direction:column; gap:2px;
+    transition:background .15s;
+  }
+  .toc a:hover{ background:var(--rail); }
+  .toc a .n{ font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--signal); }
+  .toc a .t{ font-size:12.5px; color:var(--ink-soft); font-weight:500; }
+
+  /* ---- Theory sections ---- */
+  .theory-section{ padding:56px 0; border-top:1px solid var(--line); scroll-margin-top:20px; }
+  .theory-section:first-of-type{ border-top:none; }
+  .theory-grid{ display:grid; grid-template-columns:1fr 1.05fr; gap:36px; align-items:start; }
+  @media (max-width:900px){ .theory-grid{ grid-template-columns:1fr; } }
+
+  .theory-prose .idx{ font-family:"JetBrains Mono",monospace; font-size:12.5px; color:var(--signal); display:block; margin-bottom:8px; }
+  .theory-prose h2{ font-size:clamp(21px,2.4vw,27px); margin-bottom:14px; }
+  .theory-prose p + p{ margin-top:12px; }
+  .theory-prose ul{ color:var(--ink-soft); font-size:14px; padding-left:19px; line-height:1.7; margin-top:10px; }
+  .theory-prose li + li{ margin-top:4px; }
+
+  .eq{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--rail); border:1px solid var(--line);
+    border-radius:8px; padding:12px 16px; margin:14px 0; font-size:14.5px; color:var(--ink); overflow-x:auto;
+  }
+  .eq.tight{ gap:26px; }
+  .frac{ display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 .2em; line-height:1.3; }
+  .frac .num{ border-bottom:1.4px solid currentColor; padding:0 .35em 2px; }
+  .frac .den{ padding:2px .35em 0; }
+  sub, sup{ font-size:.72em; }
+
+  .viz-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px;
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .viz-label{ font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); }
+  .viz-panel svg{ width:100%; height:auto; display:block; touch-action:none; }
+  .viz-controls{ display:flex; flex-direction:column; gap:10px; }
+  .viz-row{ display:flex; align-items:center; gap:10px; }
+  .viz-row label{ font-size:12.5px; color:var(--ink-soft); min-width:118px; flex-shrink:0; }
+  .viz-readout{ font-family:"JetBrains Mono",monospace; font-size:12.5px; font-weight:500; color:var(--ink); min-width:70px; text-align:right; font-variant-numeric:tabular-nums; }
+  .viz-readout .u{ color:var(--ink-faint); font-weight:400; }
+
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:2px;
+    background: linear-gradient(to right, var(--ink) 0%, var(--ink) var(--pct,50%), var(--line-strong) var(--pct,50%), var(--line-strong) 100%);
+    outline:none; cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:15px; height:15px; border-radius:50%;
+    background:var(--panel); border:2.5px solid var(--ink); cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{ width:15px; height:15px; border-radius:50%; background:var(--panel); border:2.5px solid var(--ink); cursor:pointer; }
+
+  .segmented{ display:flex; flex-wrap:wrap; gap:6px; }
+  .segmented button{
+    flex:1 1 auto; min-width:44px; padding:7px 8px; border-radius:8px; border:1px solid var(--line-strong);
+    background:var(--panel); color:var(--ink-soft); font-family:"JetBrains Mono",monospace; font-size:12px;
+    cursor:pointer; transition:background .12s, color .12s, border-color .12s;
+  }
+  .segmented button:hover{ border-color:var(--ink-faint); }
+  .segmented button.active{ background:var(--ink); border-color:var(--ink); color:var(--accent-ink); font-weight:600; }
+
+  .drag-hint{ font-size:11.5px; color:var(--ink-faint); display:flex; align-items:center; gap:6px; }
+  .stat-chip-row{ display:flex; flex-wrap:wrap; gap:10px; }
+  .stat-chip{ background:var(--rail); border:1px solid var(--line); border-radius:8px; padding:8px 12px; min-width:78px; }
+  .stat-chip .k{ font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:2px; }
+  .stat-chip .v{ font-family:"JetBrains Mono",monospace; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
+
+  figure{ margin:0; }
+  figcaption{ font-size:12px; color:var(--ink-faint); margin-top:10px; }
+
+  footer{ margin-top:20px; padding-top:22px; border-top:1px solid var(--line); }
+  footer p{ font-size:12.5px; color:var(--ink-faint); max-width:80ch; }
+</style>
+
+<div class="wrap">
+  <a class="back-link" href="https://claude.ai/code/artifact/c5ccebcb-2a9c-4011-862f-48f07056519e">← Volver a la Consola Acústica</a>
+
+  <header class="page-header">
+    <span class="eyebrow">Referencia técnica</span>
+    <h1>Fundamentos acústicos de la simulación</h1>
+    <p class="lede">La base física y matemática que usa el motor de fuentes imagen de la Consola Acústica — de la respuesta al impulso a los parámetros de la ISO 3382-1. Cada apartado incluye una figura interactiva: arrastra, desliza y compara para ver cómo cambian las cantidades.</p>
+    <nav class="toc" aria-label="Contenido">
+      <a href="#s1"><span class="n">01</span><span class="t">Respuesta al impulso · fuentes imagen</span></a>
+      <a href="#s2"><span class="n">02</span><span class="t">Bandas de octava</span></a>
+      <a href="#s3"><span class="n">03</span><span class="t">Integración de Schroeder</span></a>
+      <a href="#s4"><span class="n">04</span><span class="t">EDT, T20, T30</span></a>
+      <a href="#s5"><span class="n">05</span><span class="t">D50, C50, C80</span></a>
+      <a href="#s6"><span class="n">06</span><span class="t">Nivel de presión sonora</span></a>
+      <a href="#s7"><span class="n">07</span><span class="t">Rango auditivo</span></a>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- 01 — RIR / Image Source Method -->
+    <section class="theory-section" id="s1">
+      <div class="theory-grid">
+        <div class="theory-prose">
+          <span class="idx">01 · Modelo del recinto</span>
+          <h2>Respuesta al impulso y método de fuentes imagen</h2>
+          <p>El recinto se modela como un sistema lineal e invariante en el tiempo (LTI): todo el comportamiento acústico entre una fuente y un receptor queda caracterizado por la <b>Respuesta al Impulso de la Habitación</b> (RIR), <span class="mono">h(t)</span> — la señal que capta el receptor cuando la fuente emite un impulso ideal de Dirac <span class="mono">δ(t)</span>.</p>
+          <p>El <b>método de fuentes imagen</b> (Allen &amp; Berkley) calcula las reflexiones especulares reemplazando cada pared por una <i>fuente virtual</i>: la imagen espejo de la fuente real respecto a esa pared. El camino recto desde la imagen hasta el receptor, doblado en el punto donde cruza la pared, es exactamente el camino físico del rayo reflejado.</p>
+          <p>Cada reflexión pierde energía por el coeficiente de absorción del material — la amplitud se multiplica por <span class="mono">β = √(1−α)</span> en cada rebote.</p>
+          <div class="drag-hint">↕ Arrastra la fuente y el receptor</div>
+        </div>
+        <div class="viz-panel">
+          <span class="viz-label">Trazado de rayos · orden de reflexión</span>
+          <svg id="viz1" viewBox="0 0 400 260" role="img" aria-label="Diagrama de trazado de rayos entre una fuente y un receptor dentro de un recinto rectangular, con reflexiones de primer orden en las paredes"></svg>
+          <div class="viz-controls">
+            <div class="segmented" id="viz1-order" role="group" aria-label="Orden de reflexión"></div>
+            <div class="stat-chip-row" id="viz1-stats"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 — Octave bands -->
+    <section class="theory-section" id="s2">
+      <div class="theory-grid">
+        <div class="theory-prose">
+          <span class="idx">02 · Análisis espectral</span>
+          <h2>Filtrado en bandas de octava</h2>
+          <p>Para cumplir con la ISO 3382-1, la RIR no se analiza en todo el espectro a la vez: se filtra en <b>bandas de octava</b>, cada una centrada en una frecuencia estándar (125 Hz – 4000 Hz). Las frecuencias de corte inferior y superior para una central <span class="mono">f_c</span> son:</p>
+          <div class="eq tight">
+            <span>f<sub>l</sub> = f<sub>c</sub> / √2</span>
+            <span>f<sub>u</sub> = f<sub>c</sub> · √2</span>
+          </div>
+          <p>El motor aplica un filtro pasa-banda tipo Butterworth (cascada de secciones bicuadráticas, en avance y retroceso para fase cero) a cada banda por separado, antes de calcular cualquier parámetro — así el T30 a 125 Hz y a 4000 Hz de un mismo recinto pueden ser muy distintos.</p>
+        </div>
+        <div class="viz-panel">
+          <span class="viz-label">Ancho de banda · escala logarítmica</span>
+          <svg id="viz2" viewBox="0 0 400 190" role="img" aria-label="Eje de frecuencia logarítmico mostrando el ancho de banda de octava alrededor de la frecuencia central seleccionada"></svg>
+          <div class="viz-controls">
+            <div class="segmented" id="viz2-freq" role="group" aria-label="Frecuencia central"></div>
+            <div class="stat-chip-row" id="viz2-stats"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 — Schroeder integration -->
+    <section class="theory-section" id="s3">
+      <div class="theory-grid">
+        <div class="theory-prose">
+          <span class="idx">03 · Suavizado del decaimiento</span>
+          <h2>Integración de Schroeder</h2>
+          <p>Evaluar la RIR punto a punto da una curva de decaimiento ruidosa. En su lugar se usa la <b>integral de Schroeder</b>: la energía que <i>queda por llegar</i> desde el instante <span class="mono">t</span> hasta el infinito.</p>
+          <div class="eq">EDC(t) = <span class="frac"><span class="num">∫<sub>t</sub><sup>∞</sup> h²(τ) dτ</span></span></div>
+          <p>Normalizada respecto a la energía total y convertida a decibelios, produce la curva suave sobre la que se miden los tiempos de reverberación:</p>
+          <div class="eq">EDC<sub>dB</sub>(t) = 10 log<sub>10</sub> ( EDC(t) / EDC(0) )</div>
+          <p>Mueve el cursor: la región sombreada es la energía que integra la curva en ese instante.</p>
+        </div>
+        <div class="viz-panel">
+          <span class="viz-label">h(t) → energía remanente → EDC(t)</span>
+          <svg id="viz3" viewBox="0 0 400 220" role="img" aria-label="Respuesta al impulso sintética y su curva de decaimiento de energía de Schroeder, con un cursor de tiempo arrastrable"></svg>
+          <div class="viz-controls">
+            <div class="viz-row"><label for="viz3-t">Cursor de tiempo</label><input type="range" id="viz3-t" min="0" max="1" step="0.001" value="0.15"><span class="viz-readout" id="viz3-t-val"></span></div>
+            <div class="stat-chip-row" id="viz3-stats"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 — EDT/T20/T30 -->
+    <section class="theory-section" id="s4">
+      <div class="theory-grid">
+        <div class="theory-prose">
+          <span class="idx">04 · Tiempos de reverberación</span>
+          <h2>EDT, T20 y T30</h2>
+          <p>El tiempo de reverberación estándar (RT<sub>60</sub>) es el tiempo que tarda la energía en caer 60 dB. Como rara vez hay 60 dB limpios de rango dinámico, se <b>extrapola</b> por regresión lineal sobre distintos tramos de la curva EDC:</p>
+          <ul>
+            <li><b>EDT</b> — pendiente entre 0 dB y −10 dB. Se correlaciona con la percepción subjetiva.</li>
+            <li><b>T20</b> — pendiente entre −5 dB y −25 dB.</li>
+            <li><b>T30</b> — pendiente entre −5 dB y −35 dB. El estimador más robusto.</li>
+          </ul>
+          <p>Cuando la curva es una línea recta perfecta, los tres coinciden. En una sala real — o con un orden de reflexión bajo, como puedes probar aquí — no lo es, y por eso divergen.</p>
+        </div>
+        <div class="viz-panel">
+          <span class="viz-label">Regresión lineal sobre la curva EDC</span>
+          <svg id="viz4" viewBox="0 0 400 240" role="img" aria-label="Curva de decaimiento de energía con las ventanas de regresión de EDT, T20 y T30 resaltadas y su extrapolación a -60 dB"></svg>
+          <div class="viz-controls">
+            <div class="segmented" id="viz4-metric" role="group" aria-label="Métrica"></div>
+            <div class="viz-row"><label for="viz4-wobble">Curvatura del decaimiento</label><input type="range" id="viz4-wobble" min="0" max="1" step="0.01" value="0"><span class="viz-readout" id="viz4-wobble-val"></span></div>
+            <div class="stat-chip-row" id="viz4-stats"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 — D50/C50/C80 -->
+    <section class="theory-section" id="s5">
+      <div class="theory-grid">
+        <div class="theory-prose">
+          <span class="idx">05 · Claridad e inteligibilidad</span>
+          <h2>D50, C50 y C80</h2>
+          <p>La inteligibilidad depende de cuánta energía llega <i>a tiempo</i> (útil) frente a la que llega tarde (enmascaramiento). <b>D50</b> es el porcentaje de energía en los primeros 50 ms:</p>
+          <div class="eq">D<sub>50</sub> = ( <span class="frac"><span class="num">∫₀<sup>0.05</sup> h²dt</span><span class="den">∫₀<sup>∞</sup> h²dt</span></span> ) × 100%</div>
+          <p><b>C50</b> (voz) y <b>C80</b> (música) son la razón logarítmica entre energía temprana y tardía — el umbral es 80 ms para música porque las reflexiones algo más tardías todavía se perciben como parte útil de la nota:</p>
+          <div class="eq">C = 10 log<sub>10</sub> ( <span class="frac"><span class="num">energía temprana</span><span class="den">energía tardía</span></span> ) dB</div>
+        </div>
+        <div class="viz-panel">
+          <span class="viz-label">Energía temprana vs. tardía</span>
+          <svg id="viz5" viewBox="0 0 400 200" role="img" aria-label="Respuesta energética temprana con un umbral de tiempo arrastrable que divide la energía en temprana y tardía"></svg>
+          <div class="viz-controls">
+            <div class="viz-row"><label for="viz5-t">Umbral de tiempo</label><input type="range" id="viz5-t" min="5" max="150" step="1" value="50"><span class="viz-readout" id="viz5-t-val"></span></div>
+            <div class="stat-chip-row" id="viz5-stats"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 — Lp -->
+    <section class="theory-section" id="s6">
+      <div class="theory-grid">
+        <div class="theory-prose">
+          <span class="idx">06 · Campo sonoro absoluto</span>
+          <h2>Nivel de presión sonora L<sub>p</sub></h2>
+          <p>Los parámetros anteriores son relativos a la propia RIR. Para el volumen real en un asiento se combina el <b>campo directo</b> (cae con el cuadrado de la distancia) y el <b>campo reverberante</b> (aproximadamente uniforme en toda la sala), usando la constante de la sala <span class="mono">R</span>:</p>
+          <div class="eq">R = <span class="frac"><span class="num">S α</span><span class="den">1 − α</span></span> &nbsp; → &nbsp; L<sub>p</sub> = L<sub>W</sub> + 10 log<sub>10</sub> ( <span class="frac"><span class="num">Q</span><span class="den">4π r²</span></span> + <span class="frac"><span class="num">4</span><span class="den">R</span></span> )</div>
+          <p>Cerca de la fuente domina el campo directo; lejos, el reverberante. El punto donde se igualan es la <b>distancia crítica</b> — muévela con el control de distancia.</p>
+        </div>
+        <div class="viz-panel">
+          <span class="viz-label">Campo directo vs. reverberante, contra distancia</span>
+          <svg id="viz6" viewBox="0 0 400 210" role="img" aria-label="Nivel de presión sonora del campo directo y del campo reverberante en función de la distancia a la fuente, mostrando la distancia crítica donde se cruzan"></svg>
+          <div class="viz-controls">
+            <div class="viz-row"><label for="viz6-lw">Potencia L<sub>W</sub></label><input type="range" id="viz6-lw" min="60" max="140" step="1" value="100"><span class="viz-readout" id="viz6-lw-val"></span></div>
+            <div class="viz-row"><label for="viz6-abs">Absorción α</label><input type="range" id="viz6-abs" min="0.05" max="0.95" step="0.05" value="0.5"><span class="viz-readout" id="viz6-abs-val"></span></div>
+            <div class="viz-row"><label for="viz6-s">Superficie S</label><input type="range" id="viz6-s" min="200" max="3000" step="50" value="1800"><span class="viz-readout" id="viz6-s-val"></span></div>
+            <div class="viz-row"><label for="viz6-r">Distancia r</label><input type="range" id="viz6-r" min="1" max="60" step="0.5" value="14"><span class="viz-readout" id="viz6-r-val"></span></div>
+            <div class="stat-chip-row" id="viz6-stats"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 — Loudness reference scale -->
+    <section class="theory-section" id="s7">
+      <div class="theory-grid">
+        <div class="theory-prose">
+          <span class="idx">07 · Referencia</span>
+          <h2>Rango auditivo de referencia</h2>
+          <p>Para poner en contexto los niveles de presión sonora que reporta la consola, esta es la escala aproximada de sonidos cotidianos, de la respiración al umbral del dolor.</p>
+        </div>
+        <div class="viz-panel">
+          <span class="viz-label">Escala de nivel sonoro</span>
+          <figure>
+            <svg id="viz7" viewBox="0 0 400 260" role="img" aria-label="Escala vertical de nivel de presión sonora de 0 a 130 decibelios con ejemplos de sonidos cotidianos en cada rango"></svg>
+            <figcaption>Niveles aproximados en dB SPL; los rangos reales varían con la distancia a la fuente.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Esta página reimplementa, con fines didácticos, las mismas ecuaciones que usa el motor de la Consola Acústica — las figuras usan señales sintéticas ilustrativas, no resultados de una simulación real. Para los parámetros de un recinto específico, usa la consola.</p>
+  </footer>
+</div>
+
+<script type="module">
+// =================================================================
+// Shared helpers
+// =================================================================
+function el(tag, attrs={}, ...children){
+  const ns = 'http://www.w3.org/2000/svg';
+  const svgTags = new Set(['svg','g','rect','circle','line','path','text','polygon','polyline','defs','marker','tspan']);
+  const node = svgTags.has(tag) ? document.createElementNS(ns, tag) : document.createElement(tag);
+  for (const k in attrs) node.setAttribute(k, attrs[k]);
+  for (const c of children) node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  return node;
+}
+function clear(node){ while (node.firstChild) node.removeChild(node.firstChild); }
+function fmt(v, d=2){ return Number.isFinite(v) ? v.toFixed(d) : '—'; }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+function bindRange(id, onInput){
+  const node = document.getElementById(id);
+  function refresh(){
+    const min = parseFloat(node.min), max = parseFloat(node.max), v = parseFloat(node.value);
+    node.style.setProperty('--pct', ((v-min)/(max-min))*100 + '%');
+  }
+  node.addEventListener('input', () => { refresh(); onInput(parseFloat(node.value)); });
+  refresh();
+  return node;
+}
+
+function buildSegmented(containerId, options, initial, onChange){
+  const container = document.getElementById(containerId);
+  clear(container);
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = opt.label;
+    btn.className = opt.value === initial ? 'active' : '';
+    btn.addEventListener('click', () => {
+      [...container.children].forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(opt.value);
+    });
+    container.appendChild(btn);
+  });
+}
+
+function statChip(k, v, u){
+  const chip = el('div', {class:'stat-chip'});
+  chip.appendChild(el('span', {class:'k'}, k));
+  const val = el('span', {class:'v'}, v);
+  if (u) val.appendChild(el('span', {class:'u'}, ' ' + u));
+  chip.appendChild(val);
+  return chip;
+}
+
+function svgPoint(svg, evt){
+  const pt = svg.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+function linreg(xs, ys){
+  const n = xs.length;
+  let mx=0,my=0;
+  for (let i=0;i<n;i++){ mx+=xs[i]; my+=ys[i]; }
+  mx/=n; my/=n;
+  let num=0, den=0;
+  for (let i=0;i<n;i++){ num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)**2; }
+  return num/den;
+}
+
+function calcTiempo(t, edcDb, uIn, uFin){
+  let iIn=-1, iFin=-1;
+  for (let i=0;i<edcDb.length;i++){ if (edcDb[i]<=uIn){ iIn=i; break; } }
+  for (let i=0;i<edcDb.length;i++){ if (edcDb[i]<=uFin){ iFin=i; break; } }
+  if (iIn===-1 || iFin===-1 || iFin<=iIn) return {time:NaN};
+  const xs = t.slice(iIn,iFin), ys = edcDb.slice(iIn,iFin);
+  if (xs.length<2) return {time:NaN};
+  const m = linreg(xs, ys);
+  const mx = xs.reduce((a,b)=>a+b,0)/xs.length, my = ys.reduce((a,b)=>a+b,0)/ys.length;
+  const intercept = my - m*mx;
+  return {time: -60/m, slope:m, intercept, iIn, iFin};
+}
+
+const WAVE_STOPS = [
+  {t:0.00,c:[58,43,255]},{t:0.20,c:[124,43,219]},{t:0.38,c:[198,43,192]},
+  {t:0.52,c:[239,63,143]},{t:0.68,c:[255,122,61]},{t:0.84,c:[255,201,61]},{t:1.00,c:[255,255,255]},
+];
+function waveColor(t, alpha=1){
+  t = clamp(t,0,1);
+  let a=WAVE_STOPS[0], b=WAVE_STOPS[WAVE_STOPS.length-1];
+  for (let i=0;i<WAVE_STOPS.length-1;i++){ if (t>=WAVE_STOPS[i].t && t<=WAVE_STOPS[i+1].t){ a=WAVE_STOPS[i]; b=WAVE_STOPS[i+1]; break; } }
+  const f = (t-a.t)/((b.t-a.t)||1);
+  const r=a.c[0]+(b.c[0]-a.c[0])*f, g=a.c[1]+(b.c[1]-a.c[1])*f, bl=a.c[2]+(b.c[2]-a.c[2])*f;
+  return `rgba(${r|0},${g|0},${bl|0},${alpha})`;
+}
+const ISO_FREQS = [125,250,500,1000,2000,4000];
+function bandColor(freq){ const idx = ISO_FREQS.indexOf(freq); return waveColor(idx/6 + 0.02); }
+
+// =================================================================
+// 01 — Image source method
+// =================================================================
+(function(){
+  const svg = document.getElementById('viz1');
+  const room = {x:30, y:20, w:340, h:210};
+  let order = 1;
+  let S = {x:110, y:70}, R = {x:250, y:150}; // room-local coords
+  let dragging = null;
+
+  function toGlobal(p){ return {x: room.x+p.x, y: room.y+p.y}; }
+
+  function reflect(S,R,axis,value,min,max){
+    let Sp, t0, hit;
+    if (axis==='y'){
+      Sp = {x:S.x, y:2*value-S.y};
+      t0 = (value - Sp.y)/(R.y-Sp.y);
+      hit = Sp.x + t0*(R.x-Sp.x);
+      if (t0<=0||t0>=1||hit<min||hit>max) return null;
+      return {bounce:{x:hit,y:value}};
+    } else {
+      Sp = {x:2*value-S.x, y:S.y};
+      t0 = (value - Sp.x)/(R.x-Sp.x);
+      hit = Sp.y + t0*(R.y-Sp.y);
+      if (t0<=0||t0>=1||hit<min||hit>max) return null;
+      return {bounce:{x:value,y:hit}};
+    }
+  }
+
+  function render(){
+    clear(svg);
+    const g = el('g');
+    g.appendChild(el('rect', {x:room.x, y:room.y, width:room.w, height:room.h, fill:'none', stroke:'var(--line-strong)', 'stroke-width':1.5, rx:2}));
+
+    const Sg = toGlobal(S), Rg = toGlobal(R);
+
+    if (order >= 1){
+      const walls = [
+        {axis:'y', value:room.y, min:room.x, max:room.x+room.w},
+        {axis:'y', value:room.y+room.h, min:room.x, max:room.x+room.w},
+        {axis:'x', value:room.x, min:room.y, max:room.y+room.h},
+        {axis:'x', value:room.x+room.w, min:room.y, max:room.y+room.h},
+      ];
+      for (const w of walls){
+        const r = reflect(Sg, Rg, w.axis, w.value, w.min, w.max);
+        if (!r) continue;
+        g.appendChild(el('path', {d:`M${Sg.x},${Sg.y} L${r.bounce.x},${r.bounce.y} L${Rg.x},${Rg.y}`, fill:'none', stroke:'var(--wave-2)', 'stroke-width':1.3, 'stroke-opacity':0.75}));
+        g.appendChild(el('circle', {cx:r.bounce.x, cy:r.bounce.y, r:2.6, fill:'var(--wave-2)'}));
+      }
+    }
+
+    // direct path always shown
+    g.appendChild(el('line', {x1:Sg.x, y1:Sg.y, x2:Rg.x, y2:Rg.y, stroke:'var(--wave-6)', 'stroke-width':1.8}));
+
+    // source & receiver
+    g.appendChild(el('circle', {cx:Sg.x, cy:Sg.y, r:8, fill:'var(--wave-5)', cursor:'grab', 'data-role':'source'}));
+    g.appendChild(el('text', {x:Sg.x, y:Sg.y-13, 'text-anchor':'middle', fill:'var(--ink-soft)', 'font-size':10}, 'Fuente'));
+    g.appendChild(el('circle', {cx:Rg.x, cy:Rg.y, r:8, fill:'var(--wave-1)', cursor:'grab', 'data-role':'receiver'}));
+    g.appendChild(el('text', {x:Rg.x, y:Rg.y-13, 'text-anchor':'middle', fill:'var(--ink-soft)', 'font-size':10}, 'Receptor'));
+
+    svg.appendChild(g);
+
+    const dist = Math.hypot(R.x-S.x, R.y-S.y) / 22; // arbitrary px→m scale for illustration
+    const stats = document.getElementById('viz1-stats');
+    clear(stats);
+    stats.appendChild(statChip('Directo', fmt(dist,1), 'm (escala)'));
+    stats.appendChild(statChip('Orden', order===0? '0 (solo directo)':'1 (+ reflex.)', ''));
+  }
+
+  svg.addEventListener('pointerdown', e => {
+    const role = e.target.getAttribute && e.target.getAttribute('data-role');
+    if (role) { dragging = role; svg.setPointerCapture(e.pointerId); }
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const p = svgPoint(svg, e);
+    const local = {x: clamp(p.x-room.x, 14, room.w-14), y: clamp(p.y-room.y, 14, room.h-14)};
+    if (dragging === 'source') S = local; else R = local;
+    render();
+  });
+  ['pointerup','pointercancel'].forEach(evt => svg.addEventListener(evt, () => dragging = null));
+
+  buildSegmented('viz1-order', [
+    {label:'Solo sonido directo', value:0},
+    {label:'+ reflexiones de 1er orden', value:1},
+  ], 1, v => { order = v; render(); });
+
+  render();
+})();
+
+// =================================================================
+// 02 — Octave bands
+// =================================================================
+(function(){
+  const svg = document.getElementById('viz2');
+  const W=400,H=190, ml=34, mr=20, axisY=140;
+  const fMin=88, fMax=5600;
+  function xFor(f){ return ml + (Math.log10(f)-Math.log10(fMin))/(Math.log10(fMax)-Math.log10(fMin)) * (W-ml-mr); }
+  let fc = 1000;
+
+  function render(){
+    clear(svg);
+    const g = el('g');
+    // axis line
+    g.appendChild(el('line', {x1:ml, y1:axisY, x2:W-mr, y2:axisY, stroke:'var(--line-strong)', 'stroke-width':1}));
+    // ticks for all bands
+    ISO_FREQS.forEach(f => {
+      const x = xFor(f);
+      g.appendChild(el('line', {x1:x, y1:axisY-4, x2:x, y2:axisY+4, stroke:'var(--ink-faint)', 'stroke-width':1}));
+      g.appendChild(el('text', {x, y:axisY+18, 'text-anchor':'middle', fill: f===fc?'var(--ink)':'var(--ink-faint)', 'font-size':10}, f>=1000? (f/1000)+'k':String(f)));
+    });
+
+    const fl = fc/Math.SQRT2, fu = fc*Math.SQRT2;
+    const xl = xFor(fl), xu = xFor(fu), xc = xFor(fc);
+    const color = bandColor(fc);
+
+    // band highlight
+    g.appendChild(el('rect', {x:xl, y:axisY-46, width:Math.max(1,xu-xl), height:46, fill:color.replace(/[\d.]+\)$/,'0.16)')}));
+    // bell curve suggestion
+    const pts = [];
+    const n=60;
+    for (let i=0;i<=n;i++){
+      const x = xl - 14 + (i/n)*(xu-xl+28);
+      const xn = (x-xc)/((xu-xl)/2 + 6);
+      const y = axisY - 6 - 36*Math.exp(-xn*xn*2.2);
+      pts.push(`${x},${y}`);
+    }
+    g.appendChild(el('polyline', {points:pts.join(' '), fill:'none', stroke:color, 'stroke-width':2, 'stroke-linejoin':'round'}));
+
+    // fc marker
+    g.appendChild(el('line', {x1:xc, y1:axisY-46, x2:xc, y2:axisY, stroke:'var(--ink)', 'stroke-width':1, 'stroke-dasharray':'2 3'}));
+    g.appendChild(el('text', {x:xc, y:axisY-52, 'text-anchor':'middle', fill:'var(--ink)', 'font-size':10.5, 'font-weight':600}, fc+' Hz'));
+
+    svg.appendChild(g);
+
+    const stats = document.getElementById('viz2-stats');
+    clear(stats);
+    stats.appendChild(statChip('f_l', fmt(fl,0), 'Hz'));
+    stats.appendChild(statChip('f_c', fmt(fc,0), 'Hz'));
+    stats.appendChild(statChip('f_u', fmt(fu,0), 'Hz'));
+  }
+
+  buildSegmented('viz2-freq', ISO_FREQS.map(f=>({label:String(f), value:f})), fc, v => { fc = v; render(); });
+  render();
+})();
+
+// =================================================================
+// 03 — Schroeder integration
+// =================================================================
+(function(){
+  const svg = document.getElementById('viz3');
+  const W=400,H=220;
+  const ml=30, mr=14, topH=88, gap=14, botH=78, topY=14, botY=topY+topH+gap;
+  const n=300, dur=1.0, tau=0.28;
+  const t = Array.from({length:n},(_,i)=>i/n*dur);
+  const h = t.map(tt => Math.exp(-tt/tau)*Math.cos(2*Math.PI*9*tt));
+  const sq = h.map(v=>v*v);
+  const edc = new Array(n); let acc=0;
+  for (let i=n-1;i>=0;i--){ acc+=sq[i]; edc[i]=acc; }
+  const edc0 = edc[0];
+  const edcDb = edc.map(v=>10*Math.log10(v/edc0+1e-10));
+
+  function xFor(tt){ return ml + (tt/dur)*(W-ml-mr); }
+  function yTop(v){ return topY + topH/2 - v*(topH/2-6); }
+  function yBot(db){ return botY + (0-db)/60*botH; } // 0..-60dB mapped to botY..botY+botH (clamped)
+
+  function render(cursorT){
+    clear(svg);
+    const g = el('g');
+
+    // top chart: h(t)
+    g.appendChild(el('line', {x1:ml, y1:yTop(0), x2:W-mr, y2:yTop(0), stroke:'var(--line)', 'stroke-width':1}));
+    let d='';
+    t.forEach((tt,i)=>{ d += (i===0?'M':'L') + xFor(tt) + ' ' + yTop(h[i]) + ' '; });
+    g.appendChild(el('path', {d, fill:'none', stroke:'var(--ink-faint)', 'stroke-width':1.2}));
+    // shaded remaining-energy region from cursor to end
+    const ci = clamp(Math.round(cursorT/dur*n), 0, n-1);
+    let shade = `M${xFor(t[ci])},${yTop(0)} `;
+    for (let i=ci;i<n;i++) shade += `L${xFor(t[i])},${yTop(h[i])} `;
+    shade += `L${xFor(t[n-1])},${yTop(0)} Z`;
+    g.appendChild(el('path', {d:shade, fill:'var(--wave-6)', 'fill-opacity':0.18, stroke:'none'}));
+    g.appendChild(el('text', {x:ml, y:topY-2, fill:'var(--ink-faint)', 'font-size':10}, 'h(t)'));
+
+    // bottom chart: EDC dB
+    [0,-20,-40,-60].forEach(db => {
+      const y = yBot(db);
+      g.appendChild(el('line', {x1:ml, y1:y, x2:W-mr, y2:y, stroke:'var(--line)', 'stroke-width':1}));
+      g.appendChild(el('text', {x:ml-6, y:y+3, 'text-anchor':'end', fill:'var(--ink-faint)', 'font-size':9}, String(db)));
+    });
+    let d2='';
+    t.forEach((tt,i)=>{ d2 += (i===0?'M':'L') + xFor(tt) + ' ' + yBot(clamp(edcDb[i],-60,5)) + ' '; });
+    g.appendChild(el('path', {d:d2, fill:'none', stroke:'var(--wave-6)', 'stroke-width':2}));
+    g.appendChild(el('text', {x:ml, y:botY-4, fill:'var(--ink-faint)', 'font-size':10}, 'EDC_dB(t)'));
+
+    // cursor
+    const cx = xFor(t[ci]);
+    g.appendChild(el('line', {x1:cx, y1:topY-6, x2:cx, y2:botY+botH+4, stroke:'var(--ink)', 'stroke-width':1, 'stroke-dasharray':'2 3'}));
+    g.appendChild(el('circle', {cx, cy:yBot(clamp(edcDb[ci],-60,5)), r:4, fill:'var(--wave-6)'}));
+
+    svg.appendChild(g);
+
+    const stats = document.getElementById('viz3-stats');
+    clear(stats);
+    stats.appendChild(statChip('t', fmt(t[ci]*1000,0), 'ms'));
+    stats.appendChild(statChip('EDC_dB', fmt(edcDb[ci],2), 'dB'));
+  }
+
+  const slider = bindRange('viz3-t', v => {
+    document.getElementById('viz3-t-val').textContent = fmt(v*dur*1000,0) + ' ms';
+    render(v*dur);
+  });
+  document.getElementById('viz3-t-val').textContent = fmt(parseFloat(slider.value)*dur*1000,0) + ' ms';
+  render(parseFloat(slider.value)*dur);
+})();
+
+// =================================================================
+// 04 — EDT / T20 / T30
+// =================================================================
+(function(){
+  const svg = document.getElementById('viz4');
+  const W=400,H=240, ml=32, mr=14, mt=14, mb=26;
+  const plotW=W-ml-mr, plotH=H-mt-mb;
+  const n=320, dur=1.1, tau=0.3;
+  let metric = 't30', wobble = 0;
+
+  const WINDOWS = { edt:[0,-10], t20:[-5,-25], t30:[-5,-35] };
+  const LABELS = { edt:'EDT', t20:'T20', t30:'T30' };
+
+  function compute(){
+    const t = Array.from({length:n},(_,i)=>i/n*dur);
+    const tau2 = tau*0.32;
+    const h = t.map(tt => (1-wobble)*Math.exp(-tt/tau)*Math.cos(2*Math.PI*8*tt) + wobble*Math.exp(-tt/tau2)*Math.cos(2*Math.PI*13*tt+0.6));
+    const sq = h.map(v=>v*v);
+    const edc = new Array(n); let acc=0;
+    for (let i=n-1;i>=0;i--){ acc+=sq[i]; edc[i]=acc; }
+    const edc0 = edc[0];
+    const edcDb = edc.map(v=>10*Math.log10(v/edc0+1e-10));
+    return {t, edcDb};
+  }
+
+  function xFor(tt,dur){ return ml + (tt/dur)*plotW; }
+  function yFor(db){ return mt + (5-db)/65*plotH; }
+
+  function render(){
+    const {t, edcDb} = compute();
+    clear(svg);
+    const g = el('g');
+
+    [0,-10,-20,-30,-40,-50,-60].forEach(db => {
+      const y = yFor(db);
+      g.appendChild(el('line', {x1:ml, y1:y, x2:W-mr, y2:y, stroke:'var(--line)', 'stroke-width':1}));
+      g.appendChild(el('text', {x:ml-5, y:y+3, 'text-anchor':'end', fill:'var(--ink-faint)', 'font-size':9}, String(db)));
+    });
+
+    const [uIn, uFin] = WINDOWS[metric];
+    const res = calcTiempo(t, edcDb, uIn, uFin);
+
+    if (Number.isFinite(res.time)){
+      const {iIn, iFin, slope, intercept} = res;
+      let bandPts = [];
+      for (let i=iIn;i<=iFin;i++) bandPts.push(`${xFor(t[i],dur)},${yFor(edcDb[i])}`);
+      for (let i=iFin;i>=iIn;i--) bandPts.push(`${xFor(t[i],dur)},${yFor(uIn)}`);
+      g.appendChild(el('polygon', {points:bandPts.join(' '), fill:'var(--wave-6)', 'fill-opacity':0.14}));
+
+      const t60 = (-60-intercept)/slope;
+      g.appendChild(el('line', {
+        x1:xFor(0,dur), y1:yFor(intercept), x2:xFor(Math.min(t60,dur*1.3),dur), y2:yFor(intercept+slope*Math.min(t60,dur*1.3)),
+        stroke:'var(--wave-6)', 'stroke-width':1.4, 'stroke-dasharray':'4 3'
+      }));
+    }
+
+    let d='';
+    t.forEach((tt,i)=>{ d += (i===0?'M':'L') + xFor(tt,dur) + ' ' + yFor(clamp(edcDb[i],-65,5)) + ' '; });
+    g.appendChild(el('path', {d, fill:'none', stroke:'var(--ink)', 'stroke-width':2}));
+
+    g.appendChild(el('text', {x:W-mr, y:mt+10, 'text-anchor':'end', fill:'var(--ink-faint)', 'font-size':9}, 'Tiempo →'));
+
+    svg.appendChild(g);
+
+    const stats = document.getElementById('viz4-stats');
+    clear(stats);
+    stats.appendChild(statChip(LABELS[metric], fmt(res.time,2), 's'));
+    stats.appendChild(statChip('Ventana', `${uIn} a ${uFin}`, 'dB'));
+  }
+
+  buildSegmented('viz4-metric', [
+    {label:'EDT', value:'edt'}, {label:'T20', value:'t20'}, {label:'T30', value:'t30'},
+  ], metric, v => { metric = v; render(); });
+
+  bindRange('viz4-wobble', v => {
+    wobble = v;
+    document.getElementById('viz4-wobble-val').textContent = fmt(v*100,0) + ' %';
+    render();
+  });
+  document.getElementById('viz4-wobble-val').textContent = '0 %';
+  render();
+})();
+
+// =================================================================
+// 05 — D50 / C50 / C80
+// =================================================================
+(function(){
+  const svg = document.getElementById('viz5');
+  const W=400,H=200, ml=30, mr=14, mt=14, mb=24;
+  const plotW=W-ml-mr, plotH=H-mt-mb;
+  const n=300, dur=0.15;
+  const t = Array.from({length:n},(_,i)=>i/n*dur);
+  const spikes = [{time:0.002,amp:1.0},{time:0.014,amp:0.55},{time:0.027,amp:0.42},{time:0.041,amp:0.3},{time:0.062,amp:0.2},{time:0.09,amp:0.13}];
+  const e = t.map(tt => {
+    let v = 0.045*Math.exp(-tt/0.09);
+    for (const s of spikes){ const d=(tt-s.time); v += s.amp*Math.exp(-(d*d)/(2*0.0007*0.0007)); }
+    return v;
+  });
+  const eMax = Math.max(...e);
+
+  function xFor(tt){ return ml + (tt/dur)*plotW; }
+  function yFor(v){ return mt + plotH - (v/eMax)*plotH; }
+
+  function render(thrMs){
+    clear(svg);
+    const g = el('g');
+    const thr = thrMs/1000;
+
+    let dEarly='M'+xFor(0)+','+yFor(0), dLate='M'+xFor(thr)+','+yFor(0);
+    t.forEach((tt,i) => {
+      const pt = ` L${xFor(tt)},${yFor(e[i])}`;
+      if (tt<=thr) dEarly += pt; else dLate += pt;
+    });
+    dEarly += `L${xFor(thr)},${yFor(0)} Z`;
+    dLate += `L${xFor(t[n-1])},${yFor(0)} Z`;
+
+    g.appendChild(el('path', {d:dLate, fill:'var(--ink-faint)', 'fill-opacity':0.22, stroke:'none'}));
+    g.appendChild(el('path', {d:dEarly, fill:'var(--wave-4)', 'fill-opacity':0.4, stroke:'none'}));
+
+    let dLine='';
+    t.forEach((tt,i)=>{ dLine += (i===0?'M':'L') + xFor(tt) + ' ' + yFor(e[i]) + ' '; });
+    g.appendChild(el('path', {d:dLine, fill:'none', stroke:'var(--ink)', 'stroke-width':1.4}));
+
+    // reference ticks at 50 / 80 ms
+    [50,80].forEach(ms => {
+      const x = xFor(ms/1000);
+      g.appendChild(el('line', {x1:x, y1:mt+plotH, x2:x, y2:mt+plotH+5, stroke:'var(--ink-faint)', 'stroke-width':1}));
+      g.appendChild(el('text', {x, y:mt+plotH+15, 'text-anchor':'middle', fill:'var(--ink-faint)', 'font-size':9}, ms+'ms'));
+    });
+
+    const cx = xFor(thr);
+    g.appendChild(el('line', {x1:cx, y1:mt-4, x2:cx, y2:mt+plotH, stroke:'var(--wave-6)', 'stroke-width':1.6}));
+
+    svg.appendChild(g);
+
+    let early=0, late=0;
+    t.forEach((tt,i) => { if (tt<=thr) early += e[i]*e[i]; else late += e[i]*e[i]; });
+    const d = (early/(early+late))*100;
+    const c = 10*Math.log10((early+1e-9)/(late+1e-9));
+
+    const stats = document.getElementById('viz5-stats');
+    clear(stats);
+    stats.appendChild(statChip('D(t)', fmt(d,1), '%'));
+    stats.appendChild(statChip('C(t)', fmt(c,1), 'dB'));
+  }
+
+  const slider = bindRange('viz5-t', v => {
+    document.getElementById('viz5-t-val').textContent = fmt(v,0) + ' ms';
+    render(v);
+  });
+  document.getElementById('viz5-t-val').textContent = fmt(parseFloat(slider.value),0) + ' ms';
+  render(parseFloat(slider.value));
+})();
+
+// =================================================================
+// 06 — Lp vs distance
+// =================================================================
+(function(){
+  const svg = document.getElementById('viz6');
+  const W=400,H=210, ml=34, mr=14, mt=16, mb=26;
+  const plotW=W-ml-mr, plotH=H-mt-mb;
+  let lw=100, alpha=0.5, S=1800, r=14;
+
+  function roomConstant(){ return alpha<0.99 ? (S*alpha)/(1-alpha) : Infinity; }
+
+  function render(){
+    clear(svg);
+    const g = el('g');
+    const R = roomConstant();
+    const revTermDb = lw + 10*Math.log10(R===Infinity?1e-12:4/R);
+    const rMax = Math.max(r*1.8, Math.sqrt(R/(16*Math.PI))*2.2, 8);
+
+    function xFor(rr){ return ml + (rr/rMax)*plotW; }
+    function lpAt(rr){ return lw + 10*Math.log10(1/(4*Math.PI*rr*rr) + (R===Infinity?0:4/R)); }
+    const yMin = revTermDb-20, yMax = lw+3;
+    function yFor(db){ return mt + (yMax-db)/(yMax-yMin)*plotH; }
+
+    [0,1,2,3].forEach(i => {
+      const db = yMax - i*(yMax-yMin)/3;
+      const y = yFor(db);
+      g.appendChild(el('line', {x1:ml, y1:y, x2:W-mr, y2:y, stroke:'var(--line)', 'stroke-width':1}));
+      g.appendChild(el('text', {x:ml-5, y:y+3, 'text-anchor':'end', fill:'var(--ink-faint)', 'font-size':9}, fmt(db,0)));
+    });
+
+    // direct field curve
+    let d1=''; const n=80;
+    for (let i=0;i<=n;i++){ const rr = 0.3 + (i/n)*(rMax-0.3); d1 += (i===0?'M':'L') + xFor(rr) + ' ' + yFor(clamp(lpAt(rr),yMin,yMax+10)) + ' '; }
+    g.appendChild(el('path', {d:d1, fill:'none', stroke:'var(--wave-5)', 'stroke-width':2}));
+    // reverberant field (flat line)
+    g.appendChild(el('line', {x1:ml, y1:yFor(clamp(revTermDb,yMin,yMax)), x2:W-mr, y2:yFor(clamp(revTermDb,yMin,yMax)), stroke:'var(--wave-1)', 'stroke-width':2, 'stroke-dasharray':'5 3'}));
+
+    // critical distance
+    const rc = Math.sqrt((R===Infinity?1e12:R)/(16*Math.PI));
+    if (rc>0 && rc<rMax){
+      const xc = xFor(rc);
+      g.appendChild(el('line', {x1:xc, y1:mt, x2:xc, y2:mt+plotH, stroke:'var(--ink-faint)', 'stroke-width':1, 'stroke-dasharray':'2 3'}));
+      g.appendChild(el('text', {x:xc, y:mt-4, 'text-anchor':'middle', fill:'var(--ink-faint)', 'font-size':9}, 'r_c'));
+    }
+
+    // current r marker
+    const xr = xFor(clamp(r,0,rMax));
+    g.appendChild(el('line', {x1:xr, y1:mt, x2:xr, y2:mt+plotH, stroke:'var(--ink)', 'stroke-width':1.4}));
+    g.appendChild(el('circle', {cx:xr, cy:yFor(clamp(lpAt(r),yMin,yMax+10)), r:4, fill:'var(--ink)'}));
+
+    g.appendChild(el('text', {x:ml, y:H-4, fill:'var(--ink-faint)', 'font-size':9}, 'Distancia r →'));
+
+    svg.appendChild(g);
+
+    const lp = lpAt(r);
+    const directDb = lw + 10*Math.log10(1/(4*Math.PI*r*r));
+    const stats = document.getElementById('viz6-stats');
+    clear(stats);
+    stats.appendChild(statChip('L_p', fmt(lp,1), 'dB'));
+    stats.appendChild(statChip('R', R===Infinity?'∞':fmt(R,0), 'm²'));
+    stats.appendChild(statChip('r_c', fmt(rc,1), 'm'));
+  }
+
+  bindRange('viz6-lw', v => { lw=v; document.getElementById('viz6-lw-val').textContent = fmt(v,0)+' dB'; render(); });
+  bindRange('viz6-abs', v => { alpha=v; document.getElementById('viz6-abs-val').textContent = fmt(v,2); render(); });
+  bindRange('viz6-s', v => { S=v; document.getElementById('viz6-s-val').textContent = fmt(v,0)+' m²'; render(); });
+  bindRange('viz6-r', v => { r=v; document.getElementById('viz6-r-val').textContent = fmt(v,1)+' m'; render(); });
+  document.getElementById('viz6-lw-val').textContent = '100 dB';
+  document.getElementById('viz6-abs-val').textContent = '0.50';
+  document.getElementById('viz6-s-val').textContent = '1800 m²';
+  document.getElementById('viz6-r-val').textContent = '14.0 m';
+  render();
+})();
+
+// =================================================================
+// 07 — Loudness reference scale (static figure)
+// =================================================================
+(function(){
+  const svg = document.getElementById('viz7');
+  const W=400,H=260, top=16, bottom=244, left=60;
+  const dbMax=130, dbMin=0;
+  const refs = [
+    {db:10, label:'Alguien respirando'},
+    {db:30, label:'Habla susurrando'},
+    {db:60, label:'Conversación típica'},
+    {db:80, label:'Herramientas eléctricas'},
+    {db:100, label:'Concierto en vivo'},
+    {db:120, label:'Fuegos artificiales'},
+  ];
+  function yFor(db){ return bottom - (db/dbMax)*(bottom-top); }
+
+  clear(svg);
+  const g = el('g');
+  // gradient bar built from stacked rects (no <script> inside svg; build via JS append instead of <linearGradient> to keep it simple & robust)
+  const steps = 40;
+  for (let i=0;i<steps;i++){
+    const db0 = dbMin + (i/steps)*dbMax, db1 = dbMin + ((i+1)/steps)*dbMax;
+    const y0 = yFor(db0), y1 = yFor(db1);
+    g.appendChild(el('rect', {x:left, y:y1, width:22, height:(y0-y1)+0.6, fill:waveColor(i/steps)}));
+  }
+  g.appendChild(el('rect', {x:left, y:top, width:22, height:bottom-top, fill:'none', stroke:'var(--line-strong)', 'stroke-width':1}));
+
+  refs.forEach(r => {
+    const y = yFor(r.db);
+    g.appendChild(el('line', {x1:left+22, y1:y, x2:left+34, y2:y, stroke:'var(--ink-faint)', 'stroke-width':1}));
+    g.appendChild(el('text', {x:left+40, y:y-4, fill:'var(--ink)', 'font-size':11, 'font-weight':600}, r.db+' dB'));
+    g.appendChild(el('text', {x:left+40, y:y+10, fill:'var(--ink-faint)', 'font-size':10}, r.label));
+  });
+  g.appendChild(el('text', {x:left+11, y:top-6, 'text-anchor':'middle', fill:'var(--ink-faint)', 'font-size':9}, '130'));
+  g.appendChild(el('text', {x:left+11, y:bottom+14, 'text-anchor':'middle', fill:'var(--ink-faint)', 'font-size':9}, '0 dB'));
+  svg.appendChild(g);
+})();
+</script>

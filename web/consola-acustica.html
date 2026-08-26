@@ -1,0 +1,1630 @@
+<meta charset="UTF-8">
+<title>Consola Acústica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Dark is the default identity; light is an explicit opt-in via the toggle
+     (data-theme, persisted in localStorage) — see the script right after this block. */
+  :root{
+    color-scheme: dark;
+    --bg:#050505; --panel:#0c0c0c; --rail:#111111; --rail-2:#161616;
+    --ink:#ffffff; --ink-soft:rgba(255,255,255,0.66); --ink-faint:rgba(255,255,255,0.38);
+    --line:rgba(255,255,255,0.13); --line-strong:rgba(255,255,255,0.26);
+    --accent:#ffffff; --accent-ink:#050505; --accent-soft:rgba(255,255,255,0.08);
+    --signal:#ffc93d; --signal-soft:rgba(255,201,61,0.14);
+    --wave-1:#3a2bff; --wave-2:#7c2bdb; --wave-3:#c62bc0;
+    --wave-4:#ef3f8f; --wave-5:#ff7a3d; --wave-6:#ffc93d; --wave-7:#ffffff;
+    --cat-1:var(--wave-1); --cat-2:var(--wave-2); --cat-3:var(--wave-3);
+    --cat-4:var(--wave-4); --cat-5:var(--wave-5); --cat-6:var(--wave-6);
+    --shadow: none;
+    --radius: 14px;
+  }
+  :root[data-theme="light"]{
+    color-scheme: light;
+    /* Warm greige "graph paper" — matched to the Noise Test poster's mottled stock. */
+    --bg:#dad6ce; --panel:#e6e2d9; --rail:#cdc8bd; --rail-2:#c3beb2;
+    --ink:#1c1a15; --ink-soft:rgba(28,26,21,0.72); --ink-faint:rgba(28,26,21,0.46);
+    --line:rgba(28,26,21,0.18); --line-strong:rgba(28,26,21,0.32);
+    --accent:#1c1a15; --accent-ink:#ede9df; --accent-soft:rgba(28,26,21,0.09);
+    --signal:#7a5000; --signal-soft:rgba(122,80,0,0.14);
+  }
+  :root[data-theme="light"] body{
+    background-color: var(--bg);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>");
+    background-repeat: repeat;
+  }
+
+  *{ box-sizing:border-box; }
+  body{ background:var(--bg); color:var(--ink); font-family:"Archivo", system-ui, sans-serif; padding-left:34px; }
+  h1,h2,h3,h4{ font-family:"Archivo", system-ui, sans-serif; font-weight:800; letter-spacing:-0.01em; text-wrap:balance; margin:0; }
+  code, .mono, .field-value, .eq, table.readout, .unit{ font-family:"JetBrains Mono", ui-monospace, monospace; }
+  a{ color:var(--ink); }
+  p{ line-height:1.6; color:var(--ink-soft); max-width:64ch; }
+
+  .wrap{ max-width:1360px; margin:0 auto; padding: 40px 20px 64px; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    display:grid; grid-template-columns: 1.15fr 1fr; gap:36px; align-items:center;
+    padding-bottom:32px; margin-bottom:32px; border-bottom:1px solid var(--line);
+  }
+  @media (max-width: 800px){ .hero{ grid-template-columns:1fr; gap:24px; } }
+
+  .eyebrow{
+    display:block; font-family:"JetBrains Mono", monospace; font-size:11.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px;
+  }
+  .eyebrow b{ color:var(--ink-soft); font-weight:500; }
+
+  .hero h1{ font-size:clamp(28px,3.2vw,38px); line-height:1.08; margin-bottom:12px; }
+  .hero p.lede{ max-width:56ch; font-size:14.5px; margin-bottom:18px; }
+
+  .meta-row{ display:flex; flex-wrap:wrap; gap:22px 28px; margin-bottom:16px; }
+  .meta-row .m{ font-size:12.5px; color:var(--ink-faint); }
+  .meta-row .m .k{ display:block; font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:3px; }
+  .meta-row .m .v{ color:var(--ink-soft); font-weight:500; }
+
+  .hero-cta{
+    display:inline-flex; align-items:center; gap:6px; font-family:"Archivo",sans-serif; font-weight:500;
+    font-size:13px; color:var(--ink-soft); background:none; border:none; padding:0; cursor:pointer;
+  }
+  .hero-cta:hover{ color:var(--ink); }
+  .hero-cta .arrow{ transition:transform .15s ease; }
+  .hero-cta:hover .arrow{ transform:translateY(2px); }
+
+  .scope-panel{
+    position:relative; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px; height:220px; overflow:hidden;
+  }
+  .scope-label{
+    position:absolute; top:12px; left:14px; z-index:2; font-family:"JetBrains Mono",monospace;
+    font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);
+  }
+  .hero-canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+  /* ---------- Layout ---------- */
+  .layout{ display:block; }
+
+  /* Control panel — an off-canvas drawer, opened via the fixed tab handle */
+  .console-tab{
+    position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:61;
+    appearance:none; border:none; background:var(--ink); color:var(--accent-ink);
+    border-radius:0 12px 12px 0; padding:16px 9px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    transition: box-shadow .15s ease;
+  }
+  .console-tab:hover{ box-shadow:0 0 0 4px var(--accent-soft); }
+
+  .theme-toggle{
+    position:fixed; top:16px; right:16px; z-index:59;
+    appearance:none; border:1px solid var(--line-strong); background:var(--panel); color:var(--ink);
+    border-radius:999px; width:38px; height:38px; cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center; transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .theme-toggle:hover{ border-color:var(--ink-faint); box-shadow:0 0 0 4px var(--accent-soft); }
+  .console-tab .tab-icon{ font-size:15px; line-height:1; transition:transform .25s ease; }
+  .console-tab.open .tab-icon{ transform:rotate(135deg); }
+  .console-tab .tab-text{
+    writing-mode:vertical-rl; transform:rotate(180deg); font-family:"JetBrains Mono",monospace;
+    font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap;
+  }
+
+  .console-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:58; opacity:0; pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  .console-backdrop.open{ opacity:1; pointer-events:auto; }
+
+  .console{
+    position:fixed; top:0; left:0; height:100vh; width:340px; max-width:88vw; z-index:60;
+    background:var(--rail); border-right:1px solid var(--line);
+    padding:20px 18px; display:flex; flex-direction:column; gap:16px; overflow:auto;
+    transform:translateX(-100%); transition:transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow:24px 0 48px -24px rgba(0,0,0,0.7);
+  }
+  .console.open{ transform:translateX(0); }
+  .console-header{ display:flex; align-items:center; justify-content:space-between; }
+  .console-close{
+    appearance:none; border:1px solid var(--line-strong); background:transparent; color:var(--ink-soft);
+    border-radius:8px; width:28px; height:28px; cursor:pointer; font-size:14px; line-height:1;
+  }
+  .console-close:hover{ color:var(--ink); border-color:var(--ink-faint); }
+  .console h2{ font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); }
+
+  .console-hint{ font-size:12.5px; color:var(--ink-faint); line-height:1.5; margin:0; max-width:none; }
+  .console-group{ display:flex; flex-direction:column; gap:12px; padding-top:10px; border-top:1px solid var(--line); }
+  .console-group:first-of-type{ border-top:none; padding-top:0; }
+  .console-group h3{ font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-family:"JetBrains Mono",monospace; font-weight:600; }
+
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field-top{ display:flex; justify-content:space-between; align-items:baseline; }
+  .field-top label{ font-size:13px; color:var(--ink-soft); font-weight:500; }
+  .field-value{ font-size:13px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .field-value .unit{ color:var(--ink-faint); font-weight:400; font-size:11.5px; }
+
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:2px;
+    background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--pct,50%), var(--line-strong) var(--pct,50%), var(--line-strong) 100%);
+    outline:none; cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%;
+    background:var(--panel); border:2.5px solid var(--accent); cursor:pointer; box-shadow:var(--shadow);
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:16px; height:16px; border-radius:50%; background:var(--panel); border:2.5px solid var(--accent); cursor:pointer;
+  }
+
+  .segmented{ display:flex; flex-wrap:wrap; gap:6px; }
+  .segmented button{
+    flex:1 1 auto; min-width:44px; padding:7px 8px; border-radius:8px; border:1px solid var(--line-strong);
+    background:var(--panel); color:var(--ink-soft); font-family:"JetBrains Mono",monospace; font-size:12.5px;
+    cursor:pointer; transition:background .12s, color .12s, border-color .12s;
+  }
+  .segmented button:hover{ border-color:var(--ink-faint); }
+  .segmented button.active{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
+
+  .btn{
+    appearance:none; border:none; border-radius:10px; padding:11px 16px; font-family:"Archivo",sans-serif;
+    font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    transition: transform .08s ease, box-shadow .15s ease; text-align:center; line-height:1.25; text-decoration:none;
+  }
+  .btn:active{ transform: translateY(1px); }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-primary:hover{ box-shadow:0 0 0 5px var(--accent-soft); }
+  .btn-primary:disabled{ opacity:.45; cursor:progress; box-shadow:none; }
+  .btn-ghost{ background:transparent; border:1px solid var(--line-strong); color:var(--ink-soft); border-radius:10px; }
+  .btn-ghost:hover{ border-color:var(--ink-faint); color:var(--ink); }
+  .console-actions{ display:flex; gap:8px; padding-top:12px; border-top:1px solid var(--line); }
+  .console-actions .btn-primary{ flex:1; }
+  .status-line{ font-size:11.5px; color:var(--ink-faint); font-family:"JetBrains Mono",monospace; min-height:14px; }
+
+  /* ---------- Main content ---------- */
+  .content{ display:flex; flex-direction:column; gap:22px; min-width:0; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow); }
+  .panel h2{ font-size:20px; }
+  .panel > .panel-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .panel-head .tag, .theory-teaser .tag{ font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); }
+
+  /* Theory teaser — full theory lives on its own page, linked from here */
+  .theory-teaser{ display:grid; grid-template-columns:1.3fr 1fr; gap:28px; align-items:center; }
+  @media (max-width:760px){ .theory-teaser{ grid-template-columns:1fr; } }
+  .theory-teaser-text{ display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+  .theory-teaser-text .tag{ display:block; }
+  .theory-teaser-text h2{ margin:2px 0 2px; }
+  .theory-teaser-text p{ font-size:14px; }
+  .theory-teaser-eq{ display:flex; flex-direction:column; gap:8px; }
+
+  /* Preset cards */
+  .preset-group-label{ font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px; }
+  .carousel{ position:relative; }
+  .preset-grid{
+    display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x proximity; padding:2px 2px 10px;
+    scrollbar-width:none;
+  }
+  .preset-grid::-webkit-scrollbar{ display:none; }
+  .preset-grid .preset-card{ flex:0 0 250px; scroll-snap-align:start; }
+  .carousel-nav{
+    appearance:none; border:1px solid var(--line-strong); background:var(--panel); color:var(--ink);
+    border-radius:999px; width:32px; height:32px; cursor:pointer; font-size:15px; line-height:1;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color .15s ease;
+  }
+  .carousel-nav:hover{ border-color:var(--ink-faint); }
+  .carousel-nav:disabled{ opacity:.35; cursor:default; }
+  .carousel-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .carousel-nav-pair{ display:flex; gap:6px; }
+  .preset-card{
+    appearance:none; text-align:left; background:var(--rail); border:1px solid var(--line); border-radius:12px;
+    padding:14px; cursor:pointer; display:flex; flex-direction:column; gap:10px; font-family:"Archivo",sans-serif;
+    transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .preset-card:hover{ border-color:var(--ink-faint); }
+  .preset-card.active{ background:var(--panel); border-color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
+  .preset-card-top{ display:flex; align-items:center; gap:12px; }
+  .preset-icon{ flex-shrink:0; width:52px; height:52px; }
+  .preset-icon svg{ display:block; width:100%; height:100%; }
+  .preset-name{ font-size:14px; font-weight:600; color:var(--ink); display:block; }
+  .preset-dims{ font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-faint); display:block; margin-top:2px; }
+  .preset-desc{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; margin:0; max-width:none; }
+  .preset-rt-row{ display:flex; align-items:center; gap:8px; margin-top:2px; }
+  .preset-rt-row .bar-track{ flex:1; height:6px; }
+  .preset-rt-row .rt-val{ font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-faint); white-space:nowrap; }
+
+  .eq{
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:var(--rail); border:1px solid var(--line);
+    border-radius:8px; padding:12px 16px; margin:0; font-size:13.5px; color:var(--ink-soft); overflow-x:auto;
+  }
+  .eq.tight{ gap:26px; padding:9px 14px; font-size:12.5px; }
+  .frac{ display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 .2em; line-height:1.3; }
+  .frac .num{ border-bottom:1.4px solid currentColor; padding:0 .35em 2px; }
+  .frac .den{ padding:2px .35em 0; }
+  sub, sup{ font-size:.72em; }
+  .ref-table td.num{ font-variant-numeric:tabular-nums; color:var(--ink-soft); }
+
+  /* Results */
+  .results-grid{ display:grid; grid-template-columns: 1.5fr 1fr; gap:18px; }
+  @media (max-width: 760px){ .results-grid{ grid-template-columns: 1fr; } }
+  .chart-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  .chart-toolbar .segmented{ max-width:280px; }
+  .legend{ display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:10px; font-size:12px; color:var(--ink-soft); }
+  .legend .lg{ display:inline-flex; align-items:center; gap:6px; }
+  .legend .sw{ width:12px; height:3px; border-radius:2px; display:inline-block; }
+  svg.chart text{ font-family:"JetBrains Mono", monospace; }
+  .axis-label{ fill:var(--ink-faint); font-size:10.5px; }
+  .grid-line{ stroke:var(--line); stroke-width:1; }
+  .thresh-line{ stroke:var(--ink-faint); stroke-width:1; stroke-dasharray:3 3; }
+  .thresh-label{ fill:var(--ink-faint); font-size:9.5px; }
+
+  .bars-stack{ display:flex; flex-direction:column; gap:18px; }
+  .bar-block h3{ font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px; }
+  .bar-row{ display:grid; grid-template-columns: 74px 1fr 64px; align-items:center; gap:10px; margin-bottom:8px; }
+  .bar-row .lbl{ font-size:12.5px; color:var(--ink-soft); font-weight:500; }
+  .bar-track{ height:14px; background:var(--rail); border-radius:4px; overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:4px 0 0 4px; }
+  .bar-track.diverging{ position:relative; overflow:visible; background:var(--rail); }
+  .bar-track.diverging .zero-tick{ position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:var(--line-strong); }
+  .bar-track.diverging .bar-fill{ position:absolute; top:0; height:100%; border-radius:2px; }
+  .bar-val{ font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--ink); text-align:right; }
+
+  .readout{ display:grid; grid-template-columns:repeat(6,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-top:16px; }
+  @media (max-width:640px){ .readout{ grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:380px){ .readout{ grid-template-columns:repeat(2,1fr); } }
+  .readout .cell{ background:var(--panel); padding:12px 14px; display:flex; flex-direction:column; gap:4px; }
+  .readout .cell .k{ font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); }
+  .readout .cell .v{ font-size:19px; font-variant-numeric:tabular-nums; font-weight:600; }
+  .readout .cell .v .u{ font-size:12px; color:var(--ink-faint); font-weight:400; margin-left:2px; }
+
+  .stat-lp{ display:flex; align-items:center; gap:18px; padding:16px; background:var(--rail); border:1px solid var(--line); border-radius:10px; margin-top:16px; }
+  .stat-lp .num{ font-family:"Archivo",sans-serif; font-size:34px; font-weight:800; color:var(--ink); }
+  .stat-lp .lbl{ font-size:12.5px; color:var(--ink-soft); line-height:1.4; }
+
+  /* Audio lab */
+  .lab-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+  @media (max-width: 700px){ .lab-grid{ grid-template-columns:1fr; } }
+  .source-card{ border:1px solid var(--line); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .source-card h3{ font-size:13px; }
+  .radio-row{ display:flex; flex-direction:column; gap:8px; }
+  .radio-row label{ display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink-soft); cursor:pointer; }
+  .radio-row input[type="file"]{ font-size:12px; color:var(--ink-faint); }
+  .play-row{ display:flex; gap:10px; margin-top:4px; flex-wrap:wrap; }
+  .play-row .btn{ flex:1; }
+
+  /* Compare */
+  select.select{
+    appearance:none; -webkit-appearance:none; width:100%; background:var(--panel);
+    border:1px solid var(--line-strong); border-radius:8px; padding:9px 32px 9px 12px;
+    color:var(--ink); font-family:"Archivo",sans-serif; font-size:13px; cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0L5 6L10 0Z' fill='%23888' fill-opacity='0.6'/></svg>");
+    background-repeat:no-repeat; background-position:right 12px center;
+  }
+  select.select:hover{ border-color:var(--ink-faint); }
+  .compare-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  @media (max-width:700px){ .compare-grid{ grid-template-columns:1fr; } }
+  .compare-col{ border:1px solid var(--line); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .compare-col.col-a{ border-top:3px solid var(--wave-1); }
+  .compare-col.col-b{ border-top:3px solid var(--wave-5); }
+  .compare-label{ display:flex; align-items:center; gap:8px; font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); }
+  .compare-label .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .col-a .dot{ background:var(--wave-1); }
+  .col-b .dot{ background:var(--wave-5); }
+  .compare-table{ width:100%; border-collapse:collapse; margin-top:16px; font-size:13px; }
+  .compare-table th, .compare-table td{ text-align:right; padding:8px 10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  .compare-table th:first-child, .compare-table td:first-child{ text-align:left; font-weight:500; color:var(--ink-soft); }
+  .compare-table thead th{ color:var(--ink-faint); font-size:11px; letter-spacing:.06em; text-transform:uppercase; font-weight:600; }
+  .compare-table td.col-a-val{ color:var(--wave-1); }
+  .compare-table td.col-b-val{ color:var(--wave-5); }
+  .compare-table td.delta.pos{ color:var(--ink-soft); }
+  .compare-table td.delta.neg{ color:var(--ink-soft); }
+
+  footer{ margin-top:30px; padding-top:20px; border-top:1px solid var(--line); }
+  footer p{ font-size:12.5px; color:var(--ink-faint); max-width:80ch; }
+  footer p + p{ margin-top:8px; }
+  footer strong{ color:var(--ink-soft); }
+
+  .empty-hint{ font-size:13px; color:var(--ink-faint); padding:30px 10px; text-align:center; }
+  ::selection{ background:var(--signal-soft); }
+  :focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
+</style>
+<script>
+  try{
+    var savedTheme = localStorage.getItem('ca-theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') document.documentElement.setAttribute('data-theme', savedTheme);
+  }catch(e){}
+</script>
+
+<button class="theme-toggle" id="theme-toggle" aria-label="Cambiar a modo claro" title="Cambiar tema">🌙</button>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="hero-text">
+      <span class="eyebrow">Simulación acústica de recintos <b>· Método de fuentes imagen</b></span>
+      <h1>Consola Acústica</h1>
+      <p class="lede">Predicción interactiva de EDT, T20, T30, D50, C50, C80 y nivel de presión sonora absoluto. El motor corre íntegro en el navegador, reimplementando el método de fuentes imagen del prototipo original en Python (marimo + pyroomacoustics).</p>
+      <div class="meta-row">
+        <span class="m"><span class="k">Recinto</span><span class="v">Centro de las Artes, TEC</span></span>
+        <span class="m"><span class="k">Norma</span><span class="v">ISO 3382-1</span></span>
+        <span class="m"><span class="k">Autor</span><span class="v">LuA · Ing. Física, TEC</span></span>
+      </div>
+      <button class="hero-cta" id="heroCta">Elegir un punto de partida <span class="arrow">↓</span></button>
+    </div>
+    <div class="scope-panel">
+      <span class="scope-label">Señal de referencia · motor ISM</span>
+      <canvas class="hero-canvas" id="heroCanvas" aria-hidden="true"></canvas>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <button class="console-tab" id="console-tab" aria-expanded="false" aria-controls="console">
+      <span class="tab-icon">⚙</span>
+      <span class="tab-text">Panel de control</span>
+    </button>
+    <div class="console-backdrop" id="console-backdrop"></div>
+
+    <aside class="console" id="console">
+      <div class="console-header">
+        <h2>Panel de control</h2>
+        <button class="console-close" id="console-close" aria-label="Cerrar panel de control">✕</button>
+      </div>
+
+      <p class="console-hint">Ajuste fino manual — para partir de un recinto o material ya definido, usa las tarjetas de la página principal.</p>
+
+      <div class="console-group">
+        <h3>1 · Dimensiones de la sala</h3>
+        <div class="field">
+          <div class="field-top"><label for="in-ancho">Ancho</label><span class="field-value" id="val-ancho">18.0 <span class="unit">m</span></span></div>
+          <input type="range" id="in-ancho" min="5" max="30" step="1" value="18">
+        </div>
+        <div class="field">
+          <div class="field-top"><label for="in-largo">Largo</label><span class="field-value" id="val-largo">30.0 <span class="unit">m</span></span></div>
+          <input type="range" id="in-largo" min="10" max="50" step="1" value="30">
+        </div>
+        <div class="field">
+          <div class="field-top"><label for="in-alto">Alto</label><span class="field-value" id="val-alto">7.5 <span class="unit">m</span></span></div>
+          <input type="range" id="in-alto" min="3" max="15" step="0.5" value="7.5">
+        </div>
+      </div>
+
+      <div class="console-group">
+        <h3>2 · Propiedades físicas</h3>
+        <div class="field">
+          <div class="field-top"><label for="in-lw">Potencia de fuente L<sub>W</sub></label><span class="field-value" id="val-lw">100 <span class="unit">dB</span></span></div>
+          <input type="range" id="in-lw" min="60" max="140" step="1" value="100">
+        </div>
+        <div class="field">
+          <div class="field-top"><label for="in-abs">Coef. absorción α</label><span class="field-value" id="val-abs">0.50</span></div>
+          <input type="range" id="in-abs" min="0.05" max="0.95" step="0.05" value="0.5">
+        </div>
+      </div>
+
+      <div class="console-group">
+        <h3>3 · Motor de simulación</h3>
+        <div class="field">
+          <div class="field-top"><label for="in-orden">Orden de reflexiones (ISM)</label><span class="field-value" id="val-orden">3</span></div>
+          <input type="range" id="in-orden" min="1" max="10" step="1" value="3">
+        </div>
+        <div class="field">
+          <div class="field-top"><label>Frecuencia ISO</label><span class="field-value" id="val-freq">1000 <span class="unit">Hz</span></span></div>
+          <div class="segmented" id="seg-freq" role="group" aria-label="Frecuencia ISO"></div>
+        </div>
+      </div>
+
+      <div class="console-group">
+        <h3>4 · Visualización</h3>
+        <div class="field">
+          <div class="segmented" id="seg-modo" role="group" aria-label="Modo de gráfica EDC"></div>
+        </div>
+      </div>
+
+      <div class="console-actions">
+        <button class="btn btn-primary" id="btn-run">▶ Ejecutar simulación</button>
+        <button class="btn btn-ghost" id="btn-reset" title="Restaurar valores por defecto">↺</button>
+      </div>
+      <div class="status-line" id="status-line">Listo.</div>
+    </aside>
+
+    <main class="content">
+
+      <section class="panel theory-teaser" id="panel-theory">
+        <div class="theory-teaser-text">
+          <span class="tag">Base física del motor</span>
+          <h2>Fundamentos teóricos y matemáticos</h2>
+          <p>El comportamiento acústico del recinto se modela como un sistema lineal e invariante en el tiempo (LTI): la <b>Respuesta al Impulso de la Habitación</b> (RIR), el método de fuentes imagen, el filtrado en bandas de octava, la integración de Schroeder y las fórmulas de EDT, T20, T30, D50, C50, C80 y L<sub>p</sub> — con una figura interactiva para cada una.</p>
+          <a class="btn btn-primary" href="https://claude.ai/code/artifact/bac02067-5a04-4622-8702-88da22455e01">Ver fundamentos teóricos completos →</a>
+        </div>
+        <div class="theory-teaser-eq">
+          <div class="eq tight"><span>f<sub>l</sub>=f<sub>c</sub>/√2</span></div>
+          <div class="eq tight"><span>EDC<sub>dB</sub>=10log(E<sub>t</sub>/E<sub>0</sub>)</span></div>
+          <div class="eq tight"><span>D<sub>50</sub>=E<sub>0-50ms</sub>/E<sub>tot</sub></span></div>
+          <div class="eq tight"><span>L<sub>p</sub>=L<sub>W</sub>+10log(Q/4πr²+4/R)</span></div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-presets">
+        <div class="panel-head">
+          <h2>Elige un punto de partida</h2>
+          <span class="tag">Presets de recinto y material</span>
+        </div>
+        <p style="margin-bottom:18px;">Cada tarjeta ejecuta la simulación al instante. El tiempo de reverberación mostrado es una estimación de Sabine con un α de referencia fijo, solo para comparar el volumen de los recintos entre sí — el resultado real usa el material que elijas abajo.</p>
+
+        <div class="carousel-head">
+          <h3 class="preset-group-label" style="margin-bottom:0;">Tipo de recinto</h3>
+          <div class="carousel-nav-pair">
+            <button class="carousel-nav" data-carousel-prev="room-cards" aria-label="Anterior">‹</button>
+            <button class="carousel-nav" data-carousel-next="room-cards" aria-label="Siguiente">›</button>
+          </div>
+        </div>
+        <div class="carousel"><div class="preset-grid" id="room-cards"></div></div>
+
+        <div class="carousel-head" style="margin-top:22px;">
+          <h3 class="preset-group-label" style="margin-bottom:0;">Material predominante</h3>
+          <div class="carousel-nav-pair">
+            <button class="carousel-nav" data-carousel-prev="material-cards" aria-label="Anterior">‹</button>
+            <button class="carousel-nav" data-carousel-next="material-cards" aria-label="Siguiente">›</button>
+          </div>
+        </div>
+        <div class="carousel"><div class="preset-grid" id="material-cards"></div></div>
+      </section>
+
+      <section class="panel" id="panel-results">
+        <div class="panel-head">
+          <h2>Resultados de la simulación</h2>
+          <span class="tag" id="tag-room">18 × 30 × 7.5 m · α 0.50 · orden 3</span>
+        </div>
+
+        <div class="results-grid">
+          <div>
+            <div class="chart-toolbar">
+              <h3 style="font-size:12.5px;letter-spacing:.06em;color:var(--ink-faint);text-transform:uppercase;">Curva de decaimiento de energía</h3>
+            </div>
+            <div id="chart-edc"><div class="empty-hint">Ejecuta la simulación para generar la curva EDC.</div></div>
+            <div class="legend" id="legend-edc"></div>
+          </div>
+
+          <div class="bars-stack">
+            <div class="bar-block">
+              <h3>Tiempos de reverberación</h3>
+              <div id="bars-tiempos"></div>
+            </div>
+            <div class="bar-block">
+              <h3>Índices de claridad</h3>
+              <div id="bars-claridad"></div>
+            </div>
+            <div class="stat-lp" id="stat-lp">
+              <div class="num" id="stat-lp-val">—</div>
+              <div class="lbl">Nivel de presión sonora<br>absoluto promedio (L<sub>p</sub>)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="readout" id="readout"></div>
+      </section>
+
+      <section class="panel" id="panel-audio">
+        <div class="panel-head">
+          <h2>Laboratorio de audio</h2>
+          <span class="tag">Convolución en tiempo real</span>
+        </div>
+        <p style="margin-bottom:14px;">Convoluciona una señal seca con la respuesta al impulso de banda ancha del asiento central, calculada por el motor de fuentes imagen, y compara el sonido original contra el sonido dentro del auditorio simulado.</p>
+
+        <div class="lab-grid">
+          <div class="source-card">
+            <h3>Fuente de sonido</h3>
+            <div class="radio-row">
+              <label><input type="radio" name="fuente" value="voz" checked> Voz sintética (envolvente de habla)</label>
+              <label><input type="radio" name="fuente" value="sax"> Instrumento sintético (frase sostenida)</label>
+              <label><input type="radio" name="fuente" value="archivo"> Archivo propio
+                <input type="file" id="in-file" accept="audio/*" style="margin-left:6px;">
+              </label>
+            </div>
+          </div>
+          <div class="source-card">
+            <h3>Reproducción</h3>
+            <p style="font-size:12.5px;margin-bottom:0;">Requiere haber ejecutado la simulación al menos una vez.</p>
+            <div class="play-row">
+              <button class="btn btn-ghost" id="btn-play-dry">🎵 Original</button>
+              <button class="btn btn-primary" id="btn-play-wet">🔊 Con acústica del auditorio</button>
+            </div>
+            <div class="status-line" id="status-audio"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-compare">
+        <div class="panel-head">
+          <h2>Comparar dos espacios</h2>
+          <span class="tag">A / B</span>
+        </div>
+        <p style="margin-bottom:16px;">Arma dos combinaciones de recinto y material — con la potencia, orden y banda de la simulación principal — y compara sus curvas, sus métricas y su sonido lado a lado. Usa la fuente de sonido elegida arriba, en el laboratorio de audio.</p>
+
+        <div class="compare-grid">
+          <div class="compare-col col-a">
+            <span class="compare-label"><span class="dot"></span>Espacio A</span>
+            <select class="select" id="cmp-room-a" aria-label="Recinto A"></select>
+            <select class="select" id="cmp-mat-a" aria-label="Material A"></select>
+          </div>
+          <div class="compare-col col-b">
+            <span class="compare-label"><span class="dot"></span>Espacio B</span>
+            <select class="select" id="cmp-room-b" aria-label="Recinto B"></select>
+            <select class="select" id="cmp-mat-b" aria-label="Material B"></select>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-compare">Comparar A / B</button>
+          <div class="status-line" id="status-compare"></div>
+        </div>
+
+        <div id="compare-empty" class="empty-hint">Elige dos combinaciones arriba y presiona "Comparar A / B".</div>
+
+        <div id="compare-results" style="display:none;">
+          <div id="chart-compare" style="margin-top:16px;"></div>
+          <div class="legend" id="legend-compare"></div>
+          <table class="compare-table" id="compare-table"></table>
+          <div class="play-row" style="margin-top:16px;">
+            <button class="btn btn-ghost" id="btn-play-a">🎵 Escuchar A</button>
+            <button class="btn btn-ghost" id="btn-play-b">🎵 Escuchar B</button>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <p><strong>Motor de simulación.</strong> El navegador reimplementa el método de fuentes imagen (Allen &amp; Berkley) para geometrías tipo shoebox: cada pared genera fuentes virtuales hasta el orden configurado, con pérdida por reflexión β = √(1−α) por rebote y atenuación geométrica 1/(4πr). El filtrado de banda de octava usa secciones bicuadráticas pasa-banda nativas del navegador (Web Audio API), aplicadas en avance y retroceso para fase cero.</p>
+        <p><strong>Simplificaciones respecto al prototipo de referencia.</strong> Este motor no incluye la cola estocástica de trazado de rayos ni la absorción del aire dependiente de la frecuencia que sí modela pyroomacoustics — captura la parte determinista (reflexiones especulares) de la teoría descrita arriba. Las tendencias con volumen, absorción y orden de reflexión son físicamente correctas; los valores absolutos pueden diferir levemente del prototipo original en Python o de mediciones in situ.</p>
+        <p><strong>Validación pendiente.</strong> Los resultados de esta consola aún no se han contrastado contra el TFG de referencia (Luis Guerrero) ni contra las 54 mediciones ISO 3382-1 del Centro de las Artes — ambos documentos están pendientes de carga en el proyecto.</p>
+      </footer>
+
+    </main>
+  </div>
+</div>
+
+<script type="module">
+// ---------------------------------------------------------------
+// Hero wave — decorative particle field, same technique (and gradient)
+// used across the rest of this UI's charts. Purely cosmetic; no
+// coupling with the simulation engine below.
+// ---------------------------------------------------------------
+(function(){
+  const STOPS = [
+    {t:0.00, c:[58,43,255]}, {t:0.20, c:[124,43,219]}, {t:0.38, c:[198,43,192]},
+    {t:0.52, c:[239,63,143]}, {t:0.68, c:[255,122,61]}, {t:0.84, c:[255,201,61]}, {t:1.00, c:[255,255,255]},
+  ];
+  function colorAt(t, alpha){
+    t = Math.max(0, Math.min(1, t));
+    let a = STOPS[0], b = STOPS[STOPS.length-1];
+    for (let i=0;i<STOPS.length-1;i++){ if (t >= STOPS[i].t && t <= STOPS[i+1].t){ a = STOPS[i]; b = STOPS[i+1]; break; } }
+    const f = (t - a.t) / ((b.t - a.t) || 1);
+    const r = a.c[0] + (b.c[0]-a.c[0])*f, g = a.c[1] + (b.c[1]-a.c[1])*f, bl = a.c[2] + (b.c[2]-a.c[2])*f;
+    return `rgba(${r|0},${g|0},${bl|0},${alpha})`;
+  }
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function drawWaveField(ctx, W, H, opts){
+    const {cols, rows, seed=0, tPhase=0, pointerX=null, pointerAmp=0, baseline, humps, colorBias=0} = opts;
+    const colW = W / cols;
+    for (let i=0;i<=cols;i++){
+      const x = i*colW, xn = x/W;
+      let h = 0;
+      for (const hu of humps){
+        const cx = hu.cx*W + Math.sin(tPhase*hu.speed + hu.ph + seed)*hu.wobble;
+        const d = (x-cx) / (hu.width*W);
+        h += hu.amp*H*Math.exp(-d*d);
+      }
+      if (pointerX !== null){ const d = (x-pointerX)/(0.16*W); h += pointerAmp*H*Math.exp(-d*d); }
+      const curveY = baseline*H - h;
+      const colorT = Math.max(0, Math.min(1, xn + colorBias));
+      const nDots = rows;
+      for (let r=0;r<nDots;r++){
+        const spread = r*(9+r*0.55);
+        const y = curveY + spread;
+        if (y < -10 || y > H+10) continue;
+        const fall = 1 - r/nDots;
+        const alpha = Math.max(0, fall*fall*0.85 + 0.05);
+        const radius = Math.max(0.8, 2.8*fall + 0.5);
+        ctx.beginPath();
+        ctx.fillStyle = colorAt(colorT, alpha);
+        ctx.arc(x, y, radius, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+
+  const heroCanvas = document.getElementById('heroCanvas');
+  if (!heroCanvas) return;
+  let heroCtx, heroW, heroH, pointerX = null, pointerActive = 0;
+
+  function resizeHero(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = heroCanvas.getBoundingClientRect();
+    const W = Math.max(1, rect.width), H = Math.max(1, rect.height);
+    heroCanvas.width = W*dpr; heroCanvas.height = H*dpr;
+    heroCtx = heroCanvas.getContext('2d');
+    heroCtx.setTransform(dpr,0,0,dpr,0,0);
+    heroW = W; heroH = H;
+  }
+  resizeHero();
+  window.addEventListener('resize', resizeHero);
+  heroCanvas.addEventListener('pointermove', e => {
+    const r = heroCanvas.getBoundingClientRect();
+    pointerX = e.clientX - r.left; pointerActive = 1;
+  });
+  heroCanvas.addEventListener('pointerleave', () => { pointerActive = 0; });
+
+  function tickHero(ts){
+    const t = reduceMotion ? 0 : ts*0.001;
+    heroCtx.clearRect(0,0,heroW,heroH);
+    // A single, restrained trace — reads as an instrument readout (oscilloscope /
+    // spectrum display) rather than decorative poster art.
+    drawWaveField(heroCtx, heroW, heroH, {
+      cols:70, rows:7, seed:0, tPhase:t*0.32, baseline:0.58, colorBias:0,
+      pointerX, pointerAmp:pointerActive*0.1,
+      humps:[
+        {cx:0.3, amp:0.22, width:0.28, speed:0.22, ph:0, wobble:8},
+        {cx:0.72, amp:0.26, width:0.26, speed:0.18, ph:1.8, wobble:10},
+      ],
+    });
+    if (!reduceMotion) requestAnimationFrame(tickHero);
+  }
+  requestAnimationFrame(tickHero);
+  if (reduceMotion) tickHero(0);
+})();
+
+// ---------------------------------------------------------------
+// Control panel drawer
+// ---------------------------------------------------------------
+const consoleEl = document.getElementById('console');
+const consoleTab = document.getElementById('console-tab');
+const consoleBackdrop = document.getElementById('console-backdrop');
+
+function onConsoleEscape(e){ if (e.key === 'Escape') closeConsole(); }
+function openConsole(){
+  consoleEl.classList.add('open');
+  consoleBackdrop.classList.add('open');
+  consoleTab.classList.add('open');
+  consoleTab.setAttribute('aria-expanded', 'true');
+  document.addEventListener('keydown', onConsoleEscape);
+}
+function closeConsole(){
+  consoleEl.classList.remove('open');
+  consoleBackdrop.classList.remove('open');
+  consoleTab.classList.remove('open');
+  consoleTab.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('keydown', onConsoleEscape);
+}
+consoleTab.addEventListener('click', () => consoleEl.classList.contains('open') ? closeConsole() : openConsole());
+consoleBackdrop.addEventListener('click', closeConsole);
+document.getElementById('console-close').addEventListener('click', closeConsole);
+
+document.getElementById('heroCta')?.addEventListener('click', () => {
+  document.getElementById('panel-presets')?.scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+// ---------------------------------------------------------------
+// Theme toggle
+// ---------------------------------------------------------------
+(function(){
+  const btn = document.getElementById('theme-toggle');
+  function currentTheme(){
+    const attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'light' || attr === 'dark') return attr;
+    return 'dark'; // default identity when nothing saved yet
+  }
+  function applyThemeUI(theme){
+    btn.textContent = theme === 'light' ? '🌙' : '☀️';
+    btn.setAttribute('aria-label', theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro');
+  }
+  applyThemeUI(currentTheme());
+  btn.addEventListener('click', () => {
+    const next = currentTheme() === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    applyThemeUI(next);
+    try{ localStorage.setItem('ca-theme', next); }catch(e){}
+  });
+})();
+
+const FS = 44100;
+const C_SOUND = 343; // m/s, ~20°C
+const ISO_FREQS = [125, 250, 500, 1000, 2000, 4000];
+const CAT_COLORS = ['--cat-1','--cat-2','--cat-3','--cat-4','--cat-5','--cat-6'];
+
+// Averaged, broadband-illustrative absorption coefficients — a real recinto mixes
+// materials per surface; this tool uses one α for the whole room, so these are a
+// reasonable single-number stand-in per predominant finish, not a lab measurement.
+const MATERIAL_PRESETS = [
+  {label:'Concreto / vidrio', abs:0.05,
+    desc:'Superficies muy reflectantes: casi toda la energía rebota, favoreciendo reverberación larga y ecos discretos (flutter echo).'},
+  {label:'Yeso / mampostería pintada', abs:0.10,
+    desc:'Reflectante pero algo menos rígida que el concreto desnudo — sigue devolviendo la mayor parte de la energía incidente.'},
+  {label:'Madera', abs:0.15,
+    desc:'Parcialmente reflectante, típica de pisos y paneles — añade calidez tonal sin absorber demasiada energía.'},
+  {label:'Butacas tapizadas (ocupado)', abs:0.50,
+    desc:'El público es uno de los absorbentes más importantes de una sala real, sobre todo en frecuencias medias y altas.'},
+  {label:'Alfombra + cortinas', abs:0.60,
+    desc:'Absorción alta de banda ancha — acorta notablemente la reverberación, en especial hacia los agudos.'},
+  {label:'Paneles acústicos porosos', abs:0.80,
+    desc:'Tratamiento acústico dedicado: absorbe la mayor parte de la energía incidente y casi elimina la cola reverberante.'},
+  {label:'Estudio tratado (alta absorción)', abs:0.95,
+    desc:'Absorción casi total — el límite práctico del modelo, cercano a una cámara anecoica.'},
+];
+const ROOM_PRESETS = [
+  {label:'Aula de clase', ancho:8, largo:10, alto:3,
+    desc:'Recinto pequeño y seco: la reverberación es corta, lo que favorece la inteligibilidad del habla sobre la riqueza tonal.'},
+  {label:'Sala de conferencias', ancho:12, largo:16, alto:4,
+    desc:'Volumen moderado con tiempos de reverberación cortos — prioriza la claridad de la voz en reuniones y presentaciones.'},
+  {label:'Estudio de grabación', ancho:7, largo:10, alto:3.5,
+    desc:'Espacio compacto y controlado, útil para escuchar cómo cambia una toma según el tratamiento acústico de sus paredes.'},
+  {label:'Sala de conciertos pequeña', ancho:16, largo:24, alto:8,
+    desc:'Volumen suficiente para dar cuerpo a la música sin perder claridad — el punto medio clásico entre voz y música.'},
+  {label:'Centro de las Artes, TEC', ancho:18, largo:30, alto:7.5,
+    desc:'El recinto de referencia de esta consola: un auditorio mediano con buen balance entre calidez y definición.'},
+  {label:'Auditorio grande', ancho:24, largo:42, alto:11,
+    desc:'Gran volumen escénico — la cola reverberante se vuelve perceptible y empieza a competir con la claridad de la voz.'},
+  {label:'Catedral / iglesia', ancho:22, largo:48, alto:14,
+    desc:'Volumen enorme y superficies muy reflectantes: colas de reverberación de varios segundos, magníficas para música coral, hostiles para la palabra hablada.'},
+];
+
+const DEFAULTS = { ancho:18, largo:30, alto:7.5, lw:100, absCoef:0.5, orden:3, freq:1000, modo:'unica' };
+let state = {...DEFAULTS};
+let lastResult = null;
+let audioCtxShared = null;
+
+// ---------------------------------------------------------------
+// Simulation engine — Image Source Method
+// ---------------------------------------------------------------
+function positions(ancho, largo){
+  const src = [ancho/2, 4.0, 1.5];
+  const mics = [
+    [4.0, 10.0, 1.2],
+    [ancho-4.0, 12.0, 1.2],
+    [ancho/2, 18.0, 1.2],
+    [5.0, largo-5.0, 1.2],
+    [ancho-5.0, largo-4.0, 1.2],
+  ];
+  return {src, mics};
+}
+
+function dist3(a,b){
+  const dx=a[0]-b[0], dy=a[1]-b[1], dz=a[2]-b[2];
+  return Math.sqrt(dx*dx+dy*dy+dz*dz);
+}
+
+function sabineRT(V, S, alpha){
+  return alpha < 0.999 ? 0.161*V/(S*alpha) : 0.02;
+}
+
+function generateRIR(dims, src, mic, alpha, maxOrder, nSamples){
+  const [Lx,Ly,Lz] = dims;
+  const beta = Math.sqrt(Math.max(0, 1-alpha));
+  const rir = new Float32Array(nSamples);
+  const axes = [[Lx,src[0],mic[0]], [Ly,src[1],mic[1]], [Lz,src[2],mic[2]]];
+
+  // Precompute per-axis candidate image coordinates + reflection order, bounded by maxOrder
+  const candidates = axes.map(([L,s,r]) => {
+    const out = [];
+    for (let p=-maxOrder; p<=maxOrder; p++){
+      for (let e=0; e<=1; e++){
+        const order = Math.abs(2*p - e);
+        if (order > maxOrder) continue;
+        const coord = e ? (2*p*L - s) : (2*p*L + s);
+        out.push({coord, order});
+      }
+    }
+    return out;
+  });
+
+  for (const cx of candidates[0]){
+    const ox = cx.order;
+    if (ox > maxOrder) continue;
+    const dx = cx.coord - mic[0];
+    for (const cy of candidates[1]){
+      const oxy = ox + cy.order;
+      if (oxy > maxOrder) continue;
+      const dy = cy.coord - mic[1];
+      for (const cz of candidates[2]){
+        const order = oxy + cz.order;
+        if (order > maxOrder) continue;
+        const dz = cz.coord - mic[2];
+        const r = Math.sqrt(dx*dx+dy*dy+dz*dz);
+        if (r < 0.01) continue;
+        const delaySamples = Math.round((r/C_SOUND)*FS);
+        if (delaySamples >= nSamples) continue;
+        const amp = Math.pow(beta, order) / (4*Math.PI*r);
+        rir[delaySamples] += amp;
+      }
+    }
+  }
+  return rir;
+}
+
+// ---------------------------------------------------------------
+// Octave-band filtering — cascaded biquad bandpass, zero-phase (filtfilt)
+// ---------------------------------------------------------------
+async function biquadPass(signal, fc, fs){
+  const n = signal.length;
+  const ctx = new OfflineAudioContext(1, n, fs);
+  const buf = ctx.createBuffer(1, n, fs);
+  buf.copyToChannel(Float32Array.from(signal), 0);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const fl = fc/Math.SQRT2, fu = Math.min(fc*Math.SQRT2, fs/2 - 1);
+  const Q = fc/Math.max(fu-fl, 1e-6);
+  let node = src;
+  for (let i=0;i<2;i++){
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = fc;
+    bp.Q.value = Q;
+    node.connect(bp);
+    node = bp;
+  }
+  node.connect(ctx.destination);
+  src.start();
+  const rendered = await ctx.startRendering();
+  return rendered.getChannelData(0);
+}
+
+async function octaveBandFilter(signal, fc, fs){
+  const fwd = await biquadPass(signal, fc, fs);
+  const rev = Float32Array.from(fwd).reverse();
+  const back = await biquadPass(rev, fc, fs);
+  return Float32Array.from(back).reverse();
+}
+
+// ---------------------------------------------------------------
+// Metrics
+// ---------------------------------------------------------------
+function schroederEDC(filtered){
+  const n = filtered.length;
+  const sq = new Float64Array(n);
+  for (let i=0;i<n;i++) sq[i] = filtered[i]*filtered[i];
+  const edc = new Float64Array(n);
+  let acc = 0;
+  for (let i=n-1;i>=0;i--){ acc += sq[i]; edc[i] = acc; }
+  const edc0 = edc[0] || 1e-12;
+  const edcDb = new Float64Array(n);
+  for (let i=0;i<n;i++) edcDb[i] = 10*Math.log10(edc[i]/edc0 + 1e-10);
+  return {edcDb, sq};
+}
+
+function linreg(xs, ys){
+  const n = xs.length;
+  let mx=0,my=0;
+  for (let i=0;i<n;i++){ mx+=xs[i]; my+=ys[i]; }
+  mx/=n; my/=n;
+  let num=0, den=0;
+  for (let i=0;i<n;i++){ num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)**2; }
+  return num/den;
+}
+
+function calcTiempo(edcDb, fs, uIn, uFin){
+  let iIn=-1, iFin=-1;
+  for (let i=0;i<edcDb.length;i++){ if (edcDb[i]<=uIn){ iIn=i; break; } }
+  for (let i=0;i<edcDb.length;i++){ if (edcDb[i]<=uFin){ iFin=i; break; } }
+  if (iIn===-1 || iFin===-1 || iFin<=iIn) return NaN;
+  const xs=[], ys=[];
+  for (let i=iIn;i<iFin;i++){ xs.push(i/fs); ys.push(edcDb[i]); }
+  if (xs.length<2) return NaN;
+  const m = linreg(xs, ys);
+  return -60/m;
+}
+
+function claridad(sq, fs){
+  const i50 = Math.floor(0.05*fs), i80 = Math.floor(0.08*fs);
+  let e50t=0,e50l=0,e80t=0,e80l=0;
+  for (let i=0;i<sq.length;i++){
+    const v = sq[i];
+    if (i<i50) e50t+=v; else e50l+=v;
+    if (i<i80) e80t+=v; else e80l+=v;
+  }
+  // A receiver whose direct sound arrives after the 50/80 ms window has ~0 early
+  // energy; the raw log-ratio then blows up to a physically meaningless value.
+  // Clamp to the informative range so one outlier receiver can't dominate the mean.
+  const CLAMP_DB = 40;
+  const clamp = v => Math.max(-CLAMP_DB, Math.min(CLAMP_DB, v));
+  return {
+    c50: clamp(10*Math.log10((e50t+1e-12)/(e50l+1e-12))),
+    d50: (e50t/(e50t+e50l+1e-12))*100,
+    c80: clamp(10*Math.log10((e80t+1e-12)/(e80l+1e-12))),
+  };
+}
+
+function roomConstant(S, alpha){ return alpha<0.99 ? (S*alpha)/(1-alpha) : Infinity; }
+function calcLp(Lw, Q, r, R){ return Lw + 10*Math.log10(Q/(4*Math.PI*r*r) + (R===Infinity?0:4/R)); }
+function nanmean(arr){ const v=arr.filter(Number.isFinite); return v.length? v.reduce((a,b)=>a+b,0)/v.length : NaN; }
+
+// ---------------------------------------------------------------
+// Orchestration
+// ---------------------------------------------------------------
+async function runSimulation(p, onProgress){
+  const dims = [p.ancho, p.largo, p.alto];
+  const {src, mics} = positions(p.ancho, p.largo);
+  const V = p.ancho*p.largo*p.alto;
+  const S = 2*(p.ancho*p.largo + p.ancho*p.alto + p.largo*p.alto);
+  const rt60 = sabineRT(V, S, p.absCoef);
+  const durSec = Math.min(Math.max(rt60*1.8, 1.0), 6.0);
+  const nSamples = Math.ceil(durSec*FS);
+
+  const rirs = mics.map(m => generateRIR(dims, src, m, p.absCoef, p.orden, nSamples));
+  const R = roomConstant(S, p.absCoef);
+
+  const temp = {edt:[],t20:[],t30:[],c50:[],c80:[],d50:[],Lp:[]};
+  let curvaCentral = null;
+
+  for (let i=0;i<mics.length;i++){
+    onProgress && onProgress(`Filtrando RIR — asiento ${i+1}/${mics.length}…`);
+    const filtered = await octaveBandFilter(rirs[i], p.freq, FS);
+    const {edcDb, sq} = schroederEDC(filtered);
+    temp.edt.push(calcTiempo(edcDb, FS, 0, -10));
+    temp.t20.push(calcTiempo(edcDb, FS, -5, -25));
+    temp.t30.push(calcTiempo(edcDb, FS, -5, -35));
+    const cl = claridad(sq, FS);
+    temp.c50.push(cl.c50); temp.d50.push(cl.d50); temp.c80.push(cl.c80);
+    const r = dist3(src, mics[i]);
+    temp.Lp.push(calcLp(p.lw, 1, r, R));
+    if (i===2) curvaCentral = edcDb;
+  }
+
+  const res = {};
+  for (const k in temp) res[k] = nanmean(temp[k]);
+
+  let curvasTodas = null;
+  if (p.modo === 'todas'){
+    curvasTodas = {};
+    for (const f of ISO_FREQS){
+      onProgress && onProgress(`Filtrando banda ${f} Hz…`);
+      const filtered = await octaveBandFilter(rirs[2], f, FS);
+      const {edcDb} = schroederEDC(filtered);
+      curvasTodas[f] = edcDb;
+    }
+  }
+
+  return {res, curvaCentral, curvasTodas, rirBroadband: rirs[2], fs: FS, dims, src, mics};
+}
+
+// ---------------------------------------------------------------
+// UI — controls
+// ---------------------------------------------------------------
+function pct(v, min, max){ return ((v-min)/(max-min))*100 + '%'; }
+
+function bindRange(id, valId, fmt, onInput){
+  const el = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  function refresh(){
+    const min = parseFloat(el.min), max = parseFloat(el.max), v = parseFloat(el.value);
+    el.style.setProperty('--pct', pct(v,min,max));
+    valEl.innerHTML = fmt(v);
+  }
+  el.addEventListener('input', ()=>{ refresh(); onInput(parseFloat(el.value)); });
+  refresh();
+  return {el, refresh};
+}
+
+const rangeAncho = bindRange('in-ancho','val-ancho', v=>`${v.toFixed(1)} <span class="unit">m</span>`, v=>{state.ancho=v; syncPresetUI();});
+const rangeLargo = bindRange('in-largo','val-largo', v=>`${v.toFixed(1)} <span class="unit">m</span>`, v=>{state.largo=v; syncPresetUI();});
+const rangeAlto  = bindRange('in-alto','val-alto', v=>`${v.toFixed(1)} <span class="unit">m</span>`, v=>{state.alto=v; syncPresetUI();});
+const rangeLw    = bindRange('in-lw','val-lw', v=>`${v.toFixed(0)} <span class="unit">dB</span>`, v=>state.lw=v);
+const rangeAbs   = bindRange('in-abs','val-abs', v=>`${v.toFixed(2)}`, v=>{state.absCoef=v; syncPresetUI();});
+const rangeOrden = bindRange('in-orden','val-orden', v=>`${v.toFixed(0)}`, v=>state.orden=Math.round(v));
+
+// ---------------------------------------------------------------
+// Room / material presets — rendered as cards on the main page.
+// The drawer only holds the manual sliders now.
+// ---------------------------------------------------------------
+const WAVE_HEX_STOPS = [
+  {t:0.00,c:[58,43,255]}, {t:0.20,c:[124,43,219]}, {t:0.38,c:[198,43,192]},
+  {t:0.52,c:[239,63,143]}, {t:0.68,c:[255,122,61]}, {t:0.84,c:[255,201,61]},
+];
+function waveColorAt(t){
+  t = Math.max(0, Math.min(1, t));
+  const stops = WAVE_HEX_STOPS;
+  if (t <= stops[0].t) return `rgb(${stops[0].c.join(',')})`;
+  if (t >= stops[stops.length-1].t) return `rgb(${stops[stops.length-1].c.join(',')})`;
+  for (let i=0;i<stops.length-1;i++){
+    if (t>=stops[i].t && t<=stops[i+1].t){
+      const f=(t-stops[i].t)/(stops[i+1].t-stops[i].t);
+      const c = stops[i].c.map((v,k)=>v+(stops[i+1].c[k]-v)*f);
+      return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;
+    }
+  }
+}
+
+// Sabine estimate at a fixed reference α — for comparing preset volumes only;
+// the real simulation always uses the α the user actually selects below.
+function computeRoomRT(p, alphaRef=0.3){
+  const V = p.ancho*p.largo*p.alto;
+  const S = 2*(p.ancho*p.largo + p.ancho*p.alto + p.largo*p.alto);
+  return 0.161*V/(S*alphaRef);
+}
+
+function roomIconSVG(p, color){
+  const maxDim = Math.max(p.ancho, p.largo);
+  const box = 42;
+  const w = (p.ancho/maxDim)*box, h = (p.largo/maxDim)*box;
+  const x = (52-w)/2, y = (52-h)/2;
+  return `<svg viewBox="0 0 52 52" role="img" aria-label="Planta esquemática ${p.ancho}×${p.largo} m"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="1.6"/></svg>`;
+}
+function materialIconSVG(color){
+  return `<svg viewBox="0 0 52 52" role="img" aria-label="Nivel de absorción"><circle cx="26" cy="26" r="19" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="1.6"/></svg>`;
+}
+
+const ROOM_RT_MAX = 2.5; // seconds — fixed scale so bars are comparable across cards
+
+function renderRoomCards(){
+  const container = document.getElementById('room-cards');
+  container.innerHTML = ROOM_PRESETS.map((p, i) => {
+    const rt = computeRoomRT(p);
+    const t = Math.min(1, rt/ROOM_RT_MAX);
+    const color = waveColorAt(t);
+    return `<button type="button" class="preset-card" data-idx="${i}">
+      <div class="preset-card-top">
+        <div class="preset-icon">${roomIconSVG(p, color)}</div>
+        <div><span class="preset-name">${p.label}</span><span class="preset-dims">${p.ancho} × ${p.largo} × ${p.alto} m</span></div>
+      </div>
+      <p class="preset-desc">${p.desc}</p>
+      <div class="preset-rt-row">
+        <div class="bar-track"><div class="bar-fill" style="width:${(t*100).toFixed(0)}%; background:${color};"></div></div>
+        <span class="rt-val">RT≈${rt.toFixed(2)}s</span>
+      </div>
+    </button>`;
+  }).join('');
+  container.querySelectorAll('.preset-card').forEach(btn => {
+    btn.addEventListener('click', () => applyRoomPreset(+btn.dataset.idx));
+  });
+}
+
+function renderMaterialCards(){
+  const container = document.getElementById('material-cards');
+  container.innerHTML = MATERIAL_PRESETS.map((p, i) => {
+    const t = (p.abs-0.05)/(0.95-0.05);
+    const color = waveColorAt(t);
+    return `<button type="button" class="preset-card" data-idx="${i}">
+      <div class="preset-card-top">
+        <div class="preset-icon">${materialIconSVG(color)}</div>
+        <div><span class="preset-name">${p.label}</span><span class="preset-dims">α ≈ ${p.abs.toFixed(2)}</span></div>
+      </div>
+      <p class="preset-desc">${p.desc}</p>
+      <div class="preset-rt-row">
+        <div class="bar-track"><div class="bar-fill" style="width:${(t*100).toFixed(0)}%; background:${color};"></div></div>
+      </div>
+    </button>`;
+  }).join('');
+  container.querySelectorAll('.preset-card').forEach(btn => {
+    btn.addEventListener('click', () => applyMaterialPreset(+btn.dataset.idx));
+  });
+}
+
+function applyRoomPreset(idx){
+  const p = ROOM_PRESETS[idx];
+  const inAncho = document.getElementById('in-ancho'), inLargo = document.getElementById('in-largo'), inAlto = document.getElementById('in-alto');
+  inAncho.value = p.ancho; inLargo.value = p.largo; inAlto.value = p.alto;
+  // Read back the clamped/step-snapped values so state can never drift from what's shown.
+  state.ancho = parseFloat(inAncho.value); state.largo = parseFloat(inLargo.value); state.alto = parseFloat(inAlto.value);
+  rangeAncho.refresh(); rangeLargo.refresh(); rangeAlto.refresh();
+  syncPresetUI();
+  handleRun();
+}
+function applyMaterialPreset(idx){
+  const p = MATERIAL_PRESETS[idx];
+  const inAbs = document.getElementById('in-abs');
+  inAbs.value = p.abs;
+  state.absCoef = parseFloat(inAbs.value);
+  rangeAbs.refresh();
+  syncPresetUI();
+  handleRun();
+}
+
+function syncPresetUI(){
+  const roomIdx = ROOM_PRESETS.findIndex(p => p.ancho===state.ancho && p.largo===state.largo && p.alto===state.alto);
+  const matIdx = MATERIAL_PRESETS.findIndex(p => p.abs===state.absCoef);
+  document.querySelectorAll('#room-cards .preset-card').forEach(btn => btn.classList.toggle('active', +btn.dataset.idx === roomIdx));
+  document.querySelectorAll('#material-cards .preset-card').forEach(btn => btn.classList.toggle('active', +btn.dataset.idx === matIdx));
+}
+
+renderRoomCards();
+renderMaterialCards();
+
+// Carousel nav — scroll by one card width per click, and grey out an arrow
+// once its side of the track is exhausted so it isn't a dead click.
+document.querySelectorAll('[data-carousel-prev], [data-carousel-next]').forEach(btn => {
+  const targetId = btn.dataset.carouselPrev || btn.dataset.carouselNext;
+  const dir = btn.dataset.carouselPrev ? -1 : 1;
+  btn.addEventListener('click', () => {
+    const track = document.getElementById(targetId);
+    const card = track.querySelector('.preset-card');
+    const step = card ? card.getBoundingClientRect().width + 12 : 260;
+    track.scrollBy({left: dir*step, behavior:'smooth'});
+  });
+});
+function updateCarouselNavState(){
+  document.querySelectorAll('.preset-grid').forEach(track => {
+    const prevBtn = document.querySelector(`[data-carousel-prev="${track.id}"]`);
+    const nextBtn = document.querySelector(`[data-carousel-next="${track.id}"]`);
+    if (!prevBtn || !nextBtn) return;
+    prevBtn.disabled = track.scrollLeft <= 2;
+    nextBtn.disabled = track.scrollLeft >= track.scrollWidth - track.clientWidth - 2;
+  });
+}
+document.querySelectorAll('.preset-grid').forEach(track => track.addEventListener('scroll', updateCarouselNavState, {passive:true}));
+window.addEventListener('resize', updateCarouselNavState);
+updateCarouselNavState();
+
+function buildSegmented(containerId, options, initial, onChange, formatVal){
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = opt.label;
+    btn.className = opt.value === initial ? 'active' : '';
+    btn.addEventListener('click', () => {
+      [...el.children].forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(opt.value);
+      if (formatVal) formatVal(opt.value);
+    });
+    el.appendChild(btn);
+  });
+}
+
+buildSegmented('seg-freq', ISO_FREQS.map(f=>({label:String(f), value:f})), state.freq,
+  v => { state.freq = v; document.getElementById('val-freq').innerHTML = `${v} <span class="unit">Hz</span>`; });
+
+buildSegmented('seg-modo', [
+  {label:'Solo la seleccionada', value:'unica'},
+  {label:'Todas las frecuencias', value:'todas'},
+], state.modo, v => { state.modo = v; });
+
+function resetControls(){
+  state = {...DEFAULTS};
+  document.getElementById('in-ancho').value = DEFAULTS.ancho; rangeAncho.refresh();
+  document.getElementById('in-largo').value = DEFAULTS.largo; rangeLargo.refresh();
+  document.getElementById('in-alto').value = DEFAULTS.alto; rangeAlto.refresh();
+  document.getElementById('in-lw').value = DEFAULTS.lw; rangeLw.refresh();
+  document.getElementById('in-abs').value = DEFAULTS.absCoef; rangeAbs.refresh();
+  document.getElementById('in-orden').value = DEFAULTS.orden; rangeOrden.refresh();
+  document.getElementById('val-freq').innerHTML = `${DEFAULTS.freq} <span class="unit">Hz</span>`;
+  buildSegmented('seg-freq', ISO_FREQS.map(f=>({label:String(f), value:f})), DEFAULTS.freq,
+    v => { state.freq = v; document.getElementById('val-freq').innerHTML = `${v} <span class="unit">Hz</span>`; });
+  buildSegmented('seg-modo', [
+    {label:'Solo la seleccionada', value:'unica'},
+    {label:'Todas las frecuencias', value:'todas'},
+  ], DEFAULTS.modo, v => { state.modo = v; });
+  syncPresetUI();
+}
+syncPresetUI();
+
+// ---------------------------------------------------------------
+// Chart rendering (inline SVG)
+// ---------------------------------------------------------------
+function decimate(arr, maxPoints){
+  const n = arr.length;
+  if (n <= maxPoints) return Array.from(arr);
+  const step = n / maxPoints;
+  const out = [];
+  for (let i=0;i<maxPoints;i++) out.push(arr[Math.floor(i*step)]);
+  return out;
+}
+
+function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function renderEDCChart(result, freqSel, modo){
+  const W = 620, H = 320, ML = 46, MR = 14, MT = 14, MB = 30;
+  const plotW = W-ML-MR, plotH = H-MT-MB;
+  const lp = result.res.Lp;
+  const yMin = lp-60, yMax = lp+5;
+  const legendItems = [];
+
+  function yScale(v){ return MT + (yMax-v)/(yMax-yMin)*plotH; }
+
+  let curves = [];
+  if (modo === 'todas' && result.curvasTodas){
+    ISO_FREQS.forEach((f,idx) => {
+      curves.push({ data: result.curvasTodas[f], color: `var(${CAT_COLORS[idx]})`, label: `${f} Hz` });
+    });
+  } else {
+    const bandIdx = Math.max(0, ISO_FREQS.indexOf(freqSel));
+    curves.push({ data: result.curvaCentral, color: `var(${CAT_COLORS[bandIdx]})`, label: `${freqSel} Hz` });
+  }
+
+  const fullLen = result.curvaCentral.length;
+  const xMax = fullLen/result.fs;
+  function xScale(i, n){ return ML + (i/(n-1))*plotW; }
+
+  let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Curva de decaimiento de energía">`;
+
+  // gridlines (every 10 dB)
+  for (let db = Math.ceil(yMin/10)*10; db <= yMax; db += 10){
+    const y = yScale(db);
+    svg += `<line class="grid-line" x1="${ML}" x2="${W-MR}" y1="${y}" y2="${y}"/>`;
+    svg += `<text class="axis-label" x="${ML-6}" y="${y+3}" text-anchor="end">${db.toFixed(0)}</text>`;
+  }
+  // x ticks
+  const xTicks = 5;
+  for (let t=0;t<=xTicks;t++){
+    const xv = (xMax/xTicks)*t;
+    const x = ML + (xv/xMax)*plotW;
+    svg += `<text class="axis-label" x="${x}" y="${H-MB+16}" text-anchor="middle">${xv.toFixed(1)}s</text>`;
+  }
+  svg += `<text class="axis-label" x="${ML+plotW/2}" y="${H-4}" text-anchor="middle">Tiempo (s)</text>`;
+  svg += `<text class="axis-label" transform="translate(12 ${MT+plotH/2}) rotate(-90)" text-anchor="middle">SPL (dB)</text>`;
+
+  // threshold lines
+  [[10,'EDT'],[25,'T20'],[35,'T30']].forEach(([off,lbl]) => {
+    const y = yScale(lp-off);
+    svg += `<line class="thresh-line" x1="${ML}" x2="${W-MR}" y1="${y}" y2="${y}"/>`;
+    svg += `<text class="thresh-label" x="${W-MR-2}" y="${y-3}" text-anchor="end">${lbl} (-${off}dB)</text>`;
+  });
+
+  // curves
+  curves.forEach(c => {
+    const dec = decimate(c.data, 700);
+    const n = dec.length;
+    let d = '';
+    for (let i=0;i<n;i++){
+      const x = xScale(i,n);
+      const y = yScale(dec[i]+lp);
+      d += (i===0?'M':'L') + x.toFixed(2) + ' ' + y.toFixed(2) + ' ';
+    }
+    svg += `<path d="${d}" fill="none" stroke="${c.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    legendItems.push(c);
+  });
+
+  svg += `</svg>`;
+  return {svg, legendItems};
+}
+
+function barRow(label, value, unit, colorVar, maxVal){
+  const pctW = Number.isFinite(value) ? Math.max(2, Math.min(100, (value/maxVal)*100)) : 0;
+  const valStr = Number.isFinite(value) ? value.toFixed(2) : '—';
+  return `<div class="bar-row">
+    <span class="lbl">${label}</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${pctW}%; background:var(${colorVar});"></div></div>
+    <span class="bar-val">${valStr} ${unit}</span>
+  </div>`;
+}
+
+function divergingBarRow(label, value, unit, colorVar, maxAbs){
+  const valStr = Number.isFinite(value) ? value.toFixed(2) : '—';
+  let fillStyle = 'display:none;';
+  if (Number.isFinite(value)){
+    const half = Math.max(2, Math.min(50, (Math.abs(value)/maxAbs)*50));
+    fillStyle = value >= 0
+      ? `left:50%; width:${half}%; background:var(${colorVar});`
+      : `left:${50-half}%; width:${half}%; background:var(${colorVar});`;
+  }
+  return `<div class="bar-row">
+    <span class="lbl">${label}</span>
+    <div class="bar-track diverging"><span class="zero-tick"></span><div class="bar-fill" style="${fillStyle}"></div></div>
+    <span class="bar-val">${valStr} ${unit}</span>
+  </div>`;
+}
+
+function renderResults(result, p){
+  lastResult = result;
+  const {res} = result;
+
+  document.getElementById('tag-room').textContent =
+    `${p.ancho.toFixed(1)} × ${p.largo.toFixed(1)} × ${p.alto.toFixed(1)} m · α ${p.absCoef.toFixed(2)} · orden ${p.orden}`;
+
+  const {svg, legendItems} = renderEDCChart(result, p.freq, p.modo);
+  document.getElementById('chart-edc').innerHTML = svg;
+
+  const legendEl = document.getElementById('legend-edc');
+  if (legendItems.length > 1){
+    legendEl.innerHTML = legendItems.map(c =>
+      `<span class="lg"><span class="sw" style="background:${c.color}"></span>${c.label}</span>`
+    ).join('');
+  } else {
+    legendEl.innerHTML = '';
+  }
+
+  const maxT = Math.max(0.1, res.edt, res.t20, res.t30) * 1.15;
+  document.getElementById('bars-tiempos').innerHTML =
+    barRow('EDT', res.edt, 's', '--cat-1', maxT) +
+    barRow('T20', res.t20, 's', '--cat-2', maxT) +
+    barRow('T30', res.t30, 's', '--cat-3', maxT);
+
+  const maxC = Math.max(2, Math.abs(res.c50), Math.abs(res.c80)) * 1.15;
+  document.getElementById('bars-claridad').innerHTML =
+    divergingBarRow('C50', res.c50, 'dB', '--cat-4', maxC) +
+    divergingBarRow('C80', res.c80, 'dB', '--cat-5', maxC);
+
+  document.getElementById('stat-lp-val').textContent = Number.isFinite(res.Lp) ? res.Lp.toFixed(1)+' dB' : '—';
+
+  document.getElementById('readout').innerHTML = [
+    ['EDT', res.edt, 's'], ['T20', res.t20, 's'], ['T30', res.t30, 's'],
+    ['D50', res.d50, '%'], ['C50', res.c50, 'dB'], ['C80', res.c80, 'dB'],
+  ].map(([k,v,u]) => `<div class="cell"><span class="k">${k}</span><span class="v">${Number.isFinite(v)?v.toFixed(2):'—'}<span class="u">${u}</span></span></div>`).join('');
+}
+
+// ---------------------------------------------------------------
+// Audio lab
+// ---------------------------------------------------------------
+function getAudioCtx(){
+  if (!audioCtxShared) audioCtxShared = new (window.AudioContext||window.webkitAudioContext)({sampleRate: FS});
+  return audioCtxShared;
+}
+
+async function synthVoz(ctx){
+  const dur = 2.2;
+  const off = new OfflineAudioContext(1, Math.ceil(dur*FS), FS);
+  const bufSize = off.length;
+  const buf = off.createBuffer(1, bufSize, FS);
+  const data = buf.getChannelData(0);
+  // noise-burst cadence resembling speech envelope, band-limited via biquad below
+  for (let i=0;i<bufSize;i++){
+    const t = i/FS;
+    const syllable = Math.max(0, Math.sin(2*Math.PI*3.2*t))**1.5;
+    const jitter = Math.sin(2*Math.PI*140*t) * 0.15;
+    data[i] = (Math.random()*2-1) * syllable * (0.5+jitter*0+0.5) ;
+  }
+  const src = off.createBufferSource(); src.buffer = buf;
+  const bp = off.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=0.7;
+  const bp2 = off.createBiquadFilter(); bp2.type='lowpass'; bp2.frequency.value=3200;
+  src.connect(bp); bp.connect(bp2); bp2.connect(off.destination);
+  src.start();
+  return await off.startRendering();
+}
+
+async function synthInstrumento(ctx){
+  const notes = [220, 277.18, 329.63, 392.0, 329.63, 261.63];
+  const noteDur = 0.38;
+  const dur = notes.length*noteDur + 0.4;
+  const off = new OfflineAudioContext(1, Math.ceil(dur*FS), FS);
+  notes.forEach((f, idx) => {
+    const t0 = idx*noteDur;
+    const osc = off.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = f;
+    const lp = off.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 1600;
+    const gain = off.createGain();
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(0.5, t0+0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0+noteDur*1.7);
+    osc.connect(lp); lp.connect(gain); gain.connect(off.destination);
+    osc.start(t0); osc.stop(t0+noteDur*1.8);
+  });
+  return await off.startRendering();
+}
+
+async function loadFileBuffer(file){
+  const ctx = getAudioCtx();
+  const arr = await file.arrayBuffer();
+  return await ctx.decodeAudioData(arr);
+}
+
+async function getDrySource(){
+  const fuente = document.querySelector('input[name="fuente"]:checked').value;
+  if (fuente === 'archivo'){
+    const fileInput = document.getElementById('in-file');
+    if (!fileInput.files[0]) throw new Error('Selecciona un archivo de audio primero.');
+    return await loadFileBuffer(fileInput.files[0]);
+  }
+  if (fuente === 'sax') return await synthInstrumento();
+  return await synthVoz();
+}
+
+function playBuffer(buffer){
+  const ctx = getAudioCtx();
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  src.connect(ctx.destination);
+  src.start();
+}
+
+async function convolve(dryBuffer, rir, fs){
+  const dryData = dryBuffer.getChannelData(0);
+  const outLen = dryData.length + rir.length;
+  const off = new OfflineAudioContext(1, outLen, fs);
+  const dryBuf = off.createBuffer(1, dryData.length, fs);
+  dryBuf.copyToChannel(Float32Array.from(dryData), 0);
+  const rirBuf = off.createBuffer(1, rir.length, fs);
+  rirBuf.copyToChannel(Float32Array.from(rir), 0);
+  const src = off.createBufferSource(); src.buffer = dryBuf;
+  const conv = off.createConvolver(); conv.normalize = true; conv.buffer = rirBuf;
+  src.connect(conv); conv.connect(off.destination);
+  src.start();
+  return await off.startRendering();
+}
+
+// ---------------------------------------------------------------
+// Wiring
+// ---------------------------------------------------------------
+const statusLine = document.getElementById('status-line');
+const statusAudio = document.getElementById('status-audio');
+const btnRun = document.getElementById('btn-run');
+
+async function handleRun(){
+  btnRun.disabled = true;
+  const p = {...state};
+  try{
+    statusLine.textContent = 'Generando fuentes imagen…';
+    const result = await runSimulation(p, msg => statusLine.textContent = msg);
+    renderResults(result, p);
+    statusLine.textContent = `Listo · ${result.rirBroadband.length} muestras @ ${result.fs} Hz`;
+  }catch(err){
+    console.error(err);
+    statusLine.textContent = 'Error: ' + err.message;
+  }finally{
+    btnRun.disabled = false;
+  }
+}
+
+document.getElementById('btn-run').addEventListener('click', handleRun);
+document.getElementById('btn-reset').addEventListener('click', () => { resetControls(); handleRun(); });
+
+document.getElementById('btn-play-dry').addEventListener('click', async () => {
+  statusAudio.textContent = 'Preparando señal…';
+  try{
+    const dry = await getDrySource();
+    playBuffer(dry);
+    statusAudio.textContent = 'Reproduciendo original.';
+  }catch(err){ statusAudio.textContent = err.message; }
+});
+
+document.getElementById('btn-play-wet').addEventListener('click', async () => {
+  if (!lastResult){ statusAudio.textContent = 'Ejecuta la simulación primero.'; return; }
+  statusAudio.textContent = 'Convolucionando con la RIR del auditorio…';
+  try{
+    const dry = await getDrySource();
+    const wet = await convolve(dry, lastResult.rirBroadband, lastResult.fs);
+    playBuffer(wet);
+    statusAudio.textContent = 'Reproduciendo con la acústica simulada.';
+  }catch(err){ statusAudio.textContent = err.message; }
+});
+
+// ---------------------------------------------------------------
+// Compare A / B
+// ---------------------------------------------------------------
+let compareResultA = null, compareResultB = null;
+
+function fillCompareSelect(id, presets, formatLabel){
+  const sel = document.getElementById(id);
+  presets.forEach((p, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = formatLabel(p);
+    sel.appendChild(opt);
+  });
+}
+fillCompareSelect('cmp-room-a', ROOM_PRESETS, p => p.label);
+fillCompareSelect('cmp-room-b', ROOM_PRESETS, p => p.label);
+fillCompareSelect('cmp-mat-a', MATERIAL_PRESETS, p => `${p.label} (α ${p.abs.toFixed(2)})`);
+fillCompareSelect('cmp-mat-b', MATERIAL_PRESETS, p => `${p.label} (α ${p.abs.toFixed(2)})`);
+// Distinct defaults so the very first comparison is already meaningful —
+// different room AND different absorption, as asked.
+document.getElementById('cmp-room-a').value = 4; // Centro de las Artes, TEC
+document.getElementById('cmp-room-b').value = 6; // Catedral / iglesia
+document.getElementById('cmp-mat-a').value = 3;  // Butacas tapizadas, α 0.50
+document.getElementById('cmp-mat-b').value = 5;  // Paneles acústicos porosos, α 0.80
+
+function clampV(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+function renderCompareChart(a, b){
+  const W = 620, H = 300, ML = 44, MR = 14, MT = 14, MB = 30;
+  const plotW = W-ML-MR, plotH = H-MT-MB;
+  const yMin = -60, yMax = 3;
+  function yScale(v){ return MT + (yMax-v)/(yMax-yMin)*plotH; }
+  const durA = a.curvaCentral.length/a.fs, durB = b.curvaCentral.length/b.fs;
+  const xMax = Math.max(durA, durB);
+  function xScale(t){ return ML + (t/xMax)*plotW; }
+
+  let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Comparación de curvas de decaimiento de energía entre el espacio A y el espacio B">`;
+  for (let db = Math.ceil(yMin/10)*10; db <= yMax; db += 10){
+    const y = yScale(db);
+    svg += `<line class="grid-line" x1="${ML}" x2="${W-MR}" y1="${y}" y2="${y}"/>`;
+    svg += `<text class="axis-label" x="${ML-6}" y="${y+3}" text-anchor="end">${db}</text>`;
+  }
+  const xTicks = 5;
+  for (let t=0;t<=xTicks;t++){
+    const xv = (xMax/xTicks)*t;
+    svg += `<text class="axis-label" x="${xScale(xv)}" y="${H-MB+16}" text-anchor="middle">${xv.toFixed(1)}s</text>`;
+  }
+  svg += `<text class="axis-label" x="${ML+plotW/2}" y="${H-4}" text-anchor="middle">Tiempo (s)</text>`;
+  svg += `<text class="axis-label" transform="translate(12 ${MT+plotH/2}) rotate(-90)" text-anchor="middle">EDC relativo (dB)</text>`;
+
+  function curvePath(result, color){
+    const dec = decimate(result.curvaCentral, 500);
+    const n = dec.length, dur = result.curvaCentral.length/result.fs;
+    let d = '';
+    dec.forEach((v,i) => {
+      const t = n>1 ? (i/(n-1))*dur : 0;
+      const x = xScale(t), y = yScale(clampV(v,-65,5));
+      d += (i===0?'M':'L') + x.toFixed(2) + ' ' + y.toFixed(2) + ' ';
+    });
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  svg += curvePath(a, 'var(--wave-1)');
+  svg += curvePath(b, 'var(--wave-5)');
+  svg += `</svg>`;
+  return svg;
+}
+
+function fmtCmp(v, d=2){ return Number.isFinite(v) ? v.toFixed(d) : '—'; }
+
+function renderCompareResults(a, b, labelA, labelB){
+  document.getElementById('chart-compare').innerHTML = renderCompareChart(a, b);
+  document.getElementById('legend-compare').innerHTML =
+    `<span class="lg"><span class="sw" style="background:var(--wave-1)"></span>A — ${labelA}</span>` +
+    `<span class="lg"><span class="sw" style="background:var(--wave-5)"></span>B — ${labelB}</span>`;
+
+  const rows = [
+    ['EDT', a.res.edt, b.res.edt, 's'],
+    ['T20', a.res.t20, b.res.t20, 's'],
+    ['T30', a.res.t30, b.res.t30, 's'],
+    ['D50', a.res.d50, b.res.d50, '%'],
+    ['C50', a.res.c50, b.res.c50, 'dB'],
+    ['C80', a.res.c80, b.res.c80, 'dB'],
+    ['Lp', a.res.Lp, b.res.Lp, 'dB'],
+  ];
+  document.getElementById('compare-table').innerHTML = `
+    <thead><tr><th></th><th>A</th><th>B</th><th>B − A</th></tr></thead>
+    <tbody>${rows.map(([k,va,vb,u]) => {
+      const delta = (Number.isFinite(va) && Number.isFinite(vb)) ? vb-va : NaN;
+      const sign = Number.isFinite(delta) && delta >= 0 ? '+' : '';
+      return `<tr><td>${k}</td><td class="col-a-val">${fmtCmp(va)} ${u}</td><td class="col-b-val">${fmtCmp(vb)} ${u}</td><td class="delta">${sign}${fmtCmp(delta)} ${u}</td></tr>`;
+    }).join('')}</tbody>`;
+
+  document.getElementById('compare-empty').style.display = 'none';
+  document.getElementById('compare-results').style.display = '';
+}
+
+async function runCompare(){
+  const btn = document.getElementById('btn-compare');
+  const statusEl = document.getElementById('status-compare');
+  btn.disabled = true;
+  try{
+    const pa = ROOM_PRESETS[+document.getElementById('cmp-room-a').value];
+    const ma = MATERIAL_PRESETS[+document.getElementById('cmp-mat-a').value];
+    const pb = ROOM_PRESETS[+document.getElementById('cmp-room-b').value];
+    const mb = MATERIAL_PRESETS[+document.getElementById('cmp-mat-b').value];
+
+    // Keep everything but room + material identical between A and B, so the
+    // comparison isolates exactly the two variables the user picked.
+    const paramsA = {...state, ancho:pa.ancho, largo:pa.largo, alto:pa.alto, absCoef:ma.abs};
+    const paramsB = {...state, ancho:pb.ancho, largo:pb.largo, alto:pb.alto, absCoef:mb.abs};
+
+    statusEl.textContent = 'Simulando A…';
+    compareResultA = await runSimulation(paramsA, msg => statusEl.textContent = 'A — ' + msg);
+    statusEl.textContent = 'Simulando B…';
+    compareResultB = await runSimulation(paramsB, msg => statusEl.textContent = 'B — ' + msg);
+
+    renderCompareResults(compareResultA, compareResultB, `${pa.label} · ${ma.label}`, `${pb.label} · ${mb.label}`);
+    statusEl.textContent = 'Listo.';
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Error: ' + err.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+document.getElementById('btn-compare').addEventListener('click', runCompare);
+
+document.getElementById('btn-play-a').addEventListener('click', async () => {
+  const statusEl = document.getElementById('status-compare');
+  if (!compareResultA){ statusEl.textContent = 'Ejecuta la comparación primero.'; return; }
+  statusEl.textContent = 'Convolucionando A…';
+  try{
+    const dry = await getDrySource();
+    const wet = await convolve(dry, compareResultA.rirBroadband, compareResultA.fs);
+    playBuffer(wet);
+    statusEl.textContent = 'Reproduciendo A.';
+  }catch(err){ statusEl.textContent = err.message; }
+});
+document.getElementById('btn-play-b').addEventListener('click', async () => {
+  const statusEl = document.getElementById('status-compare');
+  if (!compareResultB){ statusEl.textContent = 'Ejecuta la comparación primero.'; return; }
+  statusEl.textContent = 'Convolucionando B…';
+  try{
+    const dry = await getDrySource();
+    const wet = await convolve(dry, compareResultB.rirBroadband, compareResultB.fs);
+    playBuffer(wet);
+    statusEl.textContent = 'Reproduciendo B.';
+  }catch(err){ statusEl.textContent = err.message; }
+});
+
+// initial run
+handleRun();
+</script>

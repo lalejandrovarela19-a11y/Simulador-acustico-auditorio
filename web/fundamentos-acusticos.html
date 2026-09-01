@@ -1,4 +1,9 @@
+<!doctype html>
+<html lang="es">
+<head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
 <title>Fundamentos Acústicos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +19,39 @@
     --wave-1:#3a2bff; --wave-2:#7c2bdb; --wave-3:#c62bc0;
     --wave-4:#ef3f8f; --wave-5:#ff7a3d; --wave-6:#ffc93d; --wave-7:#ffffff;
     --radius:14px;
+  }
+  :root[data-theme="light"]{
+    color-scheme: light;
+    --bg:#dad6ce; --panel:#e6e2d9; --rail:#cdc8bd;
+    --ink:#1c1a15; --ink-soft:rgba(28,26,21,0.72); --ink-faint:rgba(28,26,21,0.46);
+    --line:rgba(28,26,21,0.18); --line-strong:rgba(28,26,21,0.32);
+    --accent:#1c1a15; --accent-ink:#ede9df; --accent-soft:rgba(28,26,21,0.09);
+    --signal:#7a5000; --signal-soft:rgba(122,80,0,0.14);
+  }
+  html{ -webkit-text-size-adjust:100%; }
+  body{ margin:0; overflow-x:hidden; }
+  img, svg{ max-width:100%; }
+  .theme-toggle{
+    position:fixed; top:12px; right:12px; z-index:59;
+    appearance:none; border:1px solid var(--line-strong); background:var(--panel); color:var(--ink);
+    border-radius:999px; width:38px; height:38px; cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .theme-toggle:hover{ border-color:var(--ink-faint); }
+  .table-scroll{ overflow-x:auto; }
+  @media (max-width:640px){
+    .wrap{ padding:22px 14px 48px; }
+    .page-header .eyebrow{ padding-right:46px; }
+    .theory-section{ padding:38px 0; }
+    .viz-panel{ padding:14px; }
+    .viz-row{ flex-wrap:wrap; }
+    .viz-row label{ min-width:0; flex:1 1 100%; }
+    .viz-readout{ min-width:64px; }
+    input[type="range"]{ margin:6px 0; }
+    input[type="range"]::-webkit-slider-thumb{ width:22px; height:22px; }
+    input[type="range"]::-moz-range-thumb{ width:22px; height:22px; }
+    .segmented button{ min-height:38px; }
+    .toc{ grid-template-columns:1fr; }
   }
   *{ box-sizing:border-box; }
   body{ background:var(--bg); color:var(--ink); font-family:"Archivo", system-ui, sans-serif; }
@@ -115,9 +153,19 @@
   footer{ margin-top:20px; padding-top:22px; border-top:1px solid var(--line); }
   footer p{ font-size:12.5px; color:var(--ink-faint); max-width:80ch; }
 </style>
+</head>
+<body>
+
+<script>
+  try{
+    var savedTheme = localStorage.getItem('ca-theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') document.documentElement.setAttribute('data-theme', savedTheme);
+  }catch(e){}
+</script>
+<button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema">🌙</button>
 
 <div class="wrap">
-  <a class="back-link" href="https://claude.ai/code/artifact/c5ccebcb-2a9c-4011-862f-48f07056519e">← Volver a la Consola Acústica</a>
+  <a class="back-link" id="link-consola" href="index.html">← Volver a la Consola Acústica</a>
 
   <header class="page-header">
     <span class="eyebrow">Referencia técnica</span>
@@ -189,7 +237,7 @@
           <span class="idx">03 · Suavizado del decaimiento</span>
           <h2>Integración de Schroeder</h2>
           <p>Evaluar la RIR punto a punto da una curva de decaimiento ruidosa. En su lugar se usa la <b>integral de Schroeder</b>: la energía que <i>queda por llegar</i> desde el instante <span class="mono">t</span> hasta el infinito.</p>
-          <div class="eq">EDC(t) = <span class="frac"><span class="num">∫<sub>t</sub><sup>∞</sup> h²(τ) dτ</span></span></div>
+          <div class="eq">EDC(t) = ∫<sub>t</sub><sup>∞</sup> h²(τ) dτ</div>
           <p>Normalizada respecto a la energía total y convertida a decibelios, produce la curva suave sobre la que se miden los tiempos de reverberación:</p>
           <div class="eq">EDC<sub>dB</sub>(t) = 10 log<sub>10</sub> ( EDC(t) / EDC(0) )</div>
           <p>Mueve el cursor: la región sombreada es la energía que integra la curva en ese instante.</p>
@@ -843,7 +891,26 @@ function bandColor(freq){ const idx = ISO_FREQS.indexOf(freq); return waveColor(
 })();
 
 // =================================================================
-// 07 — Loudness reference scale (static figure)
+// Conmutador de tema (comparte la preferencia con la consola)
+// =================================================================
+(function(){
+  const btn = document.getElementById('theme-toggle');
+  const cur = () => {
+    const a = document.documentElement.getAttribute('data-theme');
+    return (a === 'light' || a === 'dark') ? a : 'dark';
+  };
+  const ui = t => { btn.textContent = t === 'light' ? '🌙' : '☀️'; };
+  ui(cur());
+  btn.addEventListener('click', () => {
+    const next = cur() === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    ui(next);
+    try{ localStorage.setItem('ca-theme', next); }catch(e){}
+  });
+})();
+
+// =================================================================
+// 07 — Escala de referencia de sonoridad (figura estática)
 // =================================================================
 (function(){
   const svg = document.getElementById('viz7');
@@ -881,3 +948,5 @@ function bandColor(freq){ const idx = ISO_FREQS.indexOf(freq); return waveColor(
   svg.appendChild(g);
 })();
 </script>
+</body>
+</html>
